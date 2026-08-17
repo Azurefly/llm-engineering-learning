@@ -51,7 +51,7 @@
           <div class="recommendation-main">
             <strong>{{ item.tag }}</strong>
             <span>{{ 'Evidence' if lang == 'en' else '证据' }} {{ item.evidence_count }} · {{ 'Errors' if lang == 'en' else '低分记录' }} {{ item.wrong_count }}</span>
-            <a href="/course/{{ item.lesson_key }}">Week {{ item.lesson.week }} · {{ item.lesson.en if lang == 'en' else item.lesson.zh }} →</a>
+            <a href="/course/{{ item.lesson_key }}">Week {{ item.lesson.week }} · {{ item.lesson.title_en if lang == 'en' else item.lesson.title_zh }} →</a>
           </div>
           <form method="post" action="/adaptive/review/start">
             <input type="hidden" name="knowledge" value="{{ item.tag }}">
