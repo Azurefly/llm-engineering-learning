@@ -24,14 +24,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
           cache: pip
           cache-dependency-path: requirements-dev.lock.txt
       - name: Install verified dependencies
         run: pip install -r requirements-dev.lock.txt
+      - name: Verify dependency consistency
+        run: python -m pip check
       - name: Run tests
         env:
           PYTHONPATH: .
@@ -42,8 +44,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Build sandbox image
@@ -59,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start hardened application
         run: docker compose up -d --build
       - name: Wait for healthcheck
