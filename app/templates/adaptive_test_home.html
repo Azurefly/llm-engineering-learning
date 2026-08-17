@@ -7,6 +7,7 @@
       <span class="section-kicker">V5 · COMPUTERIZED ADAPTIVE TESTING</span>
       <h1>{{ 'Sequential Adaptive Assessment' if lang == 'en' else '逐题自适应能力测试' }}</h1>
       <p>{{ 'The next question is selected after every answer using mastery, difficulty and question exposure.' if lang == 'en' else '每答完一道题，系统都会结合掌握度、题目难度与历史曝光次数重新选择下一题。' }}</p>
+      <small>{{ max_items }} {{ 'questions per session by default; configurable locally.' if lang == 'en' else '题/次（默认），可通过本地配置调整。' }}</small>
     </div>
     <form method="post" action="/adaptive-test/start"><button class="adaptive-btn primary big" type="submit">{{ 'Start adaptive test' if lang == 'en' else '开始自适应测试' }}</button></form>
   </section>
@@ -26,5 +27,23 @@
       </ol>
     </section>
   </div>
+
+  {% if recent_sessions %}
+  <section class="adaptive-card session-history">
+    <div class="adaptive-card-head"><div><span class="section-kicker">SESSIONS</span><h2>{{ 'Recent adaptive sessions' if lang == 'en' else '最近自适应测试' }}</h2></div></div>
+    <div class="session-list">
+      {% for item in recent_sessions %}
+      <article class="session-row">
+        <div><strong>#{{ item.id }}</strong><span>{{ item.answered }} / {{ item.max_items }} {{ 'answered' if lang == 'en' else '已作答' }}</span><small>{% for tag in item.target_tags[:3] %}{{ tag }}{% if not loop.last %} · {% endif %}{% endfor %}</small></div>
+        <span class="status-chip {{ 'developing' if item.status == 'started' else ('mastered' if item.status == 'completed' else 'weak') }}">{{ item.status }}</span>
+        <div class="session-actions">
+          {% if item.status == 'started' %}<a class="adaptive-btn primary" href="/adaptive-test/{{ item.id }}">{{ 'Resume' if lang == 'en' else '继续' }}</a><form method="post" action="/adaptive-test/{{ item.id }}/abandon"><button class="adaptive-btn" type="submit">{{ 'Abandon' if lang == 'en' else '放弃' }}</button></form>
+          {% elif item.exam_attempt_id %}<a class="adaptive-btn" href="/exam-v2/attempt/{{ item.exam_attempt_id }}/result">{{ 'Result' if lang == 'en' else '成绩单' }}</a>{% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}
