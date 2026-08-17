@@ -7,7 +7,7 @@ from .db import Database
 
 
 def export_all_json(db: Database) -> str:
-    """Export all user-owned learning data, including exam attempts, answers and V2 paper snapshots."""
+    """Export all user-owned learning data, including exams, runtime drafts and coding attempts."""
     preferred = [
         "lesson_progress",
         "thoughts",
@@ -16,6 +16,8 @@ def export_all_json(db: Database) -> str:
         "exam_answers",
         "exam_v2_meta",
         "exam_attempt_questions",
+        "exam_runtime",
+        "code_attempts",
     ]
     payload: dict[str, list[dict[str, Any]]] = {}
     with db.connect() as conn:
