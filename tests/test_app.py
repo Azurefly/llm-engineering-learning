@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from app.main_v2 import app
+from app.main_v3 import app
 
 client = TestClient(app)
 
@@ -25,3 +25,8 @@ def test_add_thought():
 def test_add_resource():
     r = client.post('/resources/save', data={'title':'PyTorch','url':'https://pytorch.org','description':'Official','tags':'official','lesson_key':'week02'}, follow_redirects=False)
     assert r.status_code == 303
+
+def test_coding_labs_page():
+    r = client.get('/coding-labs')
+    assert r.status_code == 200
+    assert 'Coding' in r.text or '代码' in r.text
