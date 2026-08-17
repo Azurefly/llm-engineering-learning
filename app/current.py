@@ -16,11 +16,13 @@ from .hardening import install_security_headers
 from .main import app
 from .search import router as search_router
 from . import adaptive_exposure
+from . import grading_v5
 
-# Freeze question definitions regardless of module import order and ensure CAT
-# exposure is counted only once after a session becomes a formal exam attempt.
+# Freeze question definitions regardless of module import order, harden rubric
+# matching, and count CAT exposure only once after formal result materialization.
 question_snapshot.install()
 adaptive_exposure.install()
+grading_v5.install()
 
 # Ordering is intentional: V3 overrides compatible timed V2 paths, while the V2
 # result/history routes remain available. All other feature routers are distinct.
