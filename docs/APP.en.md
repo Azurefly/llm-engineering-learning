@@ -1,107 +1,30 @@
-# Local Learning App
+# Local Learning Application
 
-This repository includes a local-first learning and examination app in addition to the Markdown curriculum.
+This is a local-first LLM engineering learning and assessment application designed for long-term personal use. The stable runtime entrypoint is `app.current:app`.
 
-## Features
+For the current architecture and implementation details, see [V5: Sequential Adaptive Testing & Long-Term Local Operation](V5.en.md).
 
-- Chinese / English course switching with shared progress.
-- Reading progress tracking; manual reading progress is capped below 100%.
-- A dedicated Exam Center: start an attempt, answer questions, submit, system-grade, view reports, and retake.
-- Course scores **cannot be entered manually**. Only the exam engine can write a score.
-- Passing the configured exam automatically marks the lesson 100% / completed; failing keeps it in progress.
-- Single-choice, multiple-choice, true/false, and fill-in questions use deterministic automatic grading.
-- Short answers receive partial credit against explicit concept rubrics, with matched and missing concepts shown in the report.
-- Randomized weekly papers with difficulty balancing and a stored paper snapshot per attempt.
-- Question metadata for Easy / Medium / Hard difficulty and knowledge tags.
-- Mistake Book showing only questions whose latest recorded answer is still incorrect.
-- One-click mistake-review practice generated from unresolved mistakes.
-- Score analytics including attempt count, average, best score, pass rate, and recent trend.
-- Five cross-week Stage Exams covering the full 18-week curriculum.
-- Question Bank overview with counts by type, difficulty, and knowledge coverage.
-- Markdown thoughts linked to lessons with tags.
-- External resource library for papers, tutorials, videos, blogs, and GitHub projects.
-- Local SQLite storage with no external database.
-- JSON backup includes progress, thoughts, resources, exam history, answer details, and randomized-paper snapshots.
-- Direct Python startup plus Docker / Docker Compose.
+## Current capabilities
 
-## V2 Exam Flow
-
-```text
-Study lesson
-  ↓
-Exam Center / lesson exam card
-  ↓
-Random selection + difficulty balancing
-  ↓
-Persist this attempt's paper snapshot
-  ↓
-Answer questions
-  ↓
-Submit
-  ↓
-Automatic system grading
-  ↓
-Score report + per-question feedback + concept feedback
-  ↓
-Pass → lesson 100% / completed
-Fail → lesson stays in progress; retake allowed
-```
-
-Weeks 0–2 retain the original mixed-format banks. Weeks 3–18 now add single-choice, multiple-choice, and short-answer questions on top of the original checkpoints, giving randomized weekly exams Easy / Medium / Hard coverage. The bank can keep growing without breaking historical reports because every V2 attempt stores the exact question snapshot used for that attempt.
-
-## Randomized Papers
-
-Weekly exams sample from the corresponding week's bank and try to cover:
-
-- Easy: core facts, true/false, fill-in;
-- Medium: single-choice, multiple-choice, scenario judgment;
-- Hard: short answers and cross-concept explanations.
-
-The selected question IDs and order are stored in `exam_attempt_questions`, so an old report remains reproducible even after the bank changes later.
-
-## Stage Exams
-
-The current milestones are:
-
-1. Weeks 0–4: Foundations;
-2. Weeks 5–8: LLM Applications & Basic RAG;
-3. Weeks 9–12: Advanced RAG & Agents;
-4. Weeks 13–16: Platform, Governance & Deployment;
-5. Weeks 17–18: Advanced & Capstone.
-
-Stage exams sample across multiple weeks instead of reusing one fixed weekly paper.
-
-## Mistake Book
-
-The mistake book is based on the latest state of each question rather than keeping every historical mistake forever:
-
-- if the latest recorded answer is wrong, the question appears in the mistake book;
-- if a later review or retake answers it correctly, it automatically leaves the unresolved list;
-- historical wrong-count remains available as a weakness signal.
-
-## Grading Model
-
-### Objective questions
-
-Single-choice, multiple-choice, true/false, and fill-in questions are graded deterministically against standard answers. No LLM is required, so the same submitted answers produce the same score.
-
-### Short answers
-
-Short answers are graded against explicit concept rubrics. If a question expects four concepts and an answer covers three, it receives proportional partial credit. The score report shows matched concepts, missing concepts, and earned/max points.
-
-## Coding-Exam Execution Boundary
-
-`app/code_runner.py` defines a common `CodeRunner` boundary for future Python/RAG/Agent coding exams.
-
-The default implementation is `DisabledCodeRunner`: **the application does not execute arbitrary learner code directly on the host**. A future coding grader should use an isolated container or other sandbox and score against pytest/test-case results.
-
-## UI Direction
-
-The app is designed as a learning workspace rather than a traditional admin panel. Its interaction language is inspired by Memos for quick capture, AFFiNE for knowledge-workspace hierarchy, and Tabler for mature navigation/card patterns. The implementation uses original CSS rather than copying third-party pages.
+- Bilingual Week 0-18 course reading and shared progress;
+- system-graded exams with no manual score entry;
+- randomized weekly exams, stage exams, mistake review, timers, autosave, and timeout submission;
+- deterministic grading for objective items and strict rubric grading for short answers;
+- roughly 190+ questions with an automated question-bank quality gate;
+- immutable historical question snapshots;
+- Python coding labs with optional Docker Sandbox + pytest grading;
+- knowledge mastery, six-domain capability profile, and weak-area recommendations;
+- sequential computerized adaptive testing (CAT), selecting each next question after grading the current one;
+- resumable and abandonable CAT sessions;
+- Markdown thoughts, tags, and course relationships;
+- saved external learning resources;
+- global search across courses, thoughts, and resources;
+- local SQLite storage, rolling automatic backup, full JSON export and validated restore;
+- local diagnostics and browser-request hardening.
 
 ## Run with Python
 
-Python 3.11+ is recommended.
+Python 3.11 or 3.12 is recommended. Prefer the dependency versions verified by CI:
 
 ```bash
 python -m venv .venv
@@ -111,7 +34,7 @@ Windows PowerShell:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements.lock.txt
 python run.py
 ```
 
@@ -119,11 +42,19 @@ Linux / macOS:
 
 ```bash
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.lock.txt
 python run.py
 ```
 
 Open `http://127.0.0.1:8765`.
+
+Python mode stores data in:
+
+```text
+data/learning.db
+```
+
+`data/*` is ignored by Git.
 
 ## Docker Compose
 
@@ -133,22 +64,102 @@ docker compose up -d --build
 
 Open `http://127.0.0.1:8765`.
 
-Learning data is stored in `data/learning.db`. The Compose configuration mounts `./data` to `/data`, so rebuilding the image does not remove progress.
+Docker uses the named volume:
 
-## Data Model
+```text
+llm-engineering-learning-data
+```
 
-- `lesson_progress`: lesson state, reading/completion percentage, and best system-generated exam score.
-- `exam_attempts`: one row per exam attempt with start/submission time, score, percentage, pass mark, and result.
-- `exam_answers`: raw submitted answer, earned/max points, correctness, and rubric feedback per question.
-- `exam_v2_meta`: attempt type, scope, localized title, and random seed for randomized weekly exams, stage exams, and mistake review.
-- `exam_attempt_questions`: exact selected question order, source week, difficulty, and knowledge snapshot for each randomized attempt.
-- `thoughts`: personal Markdown notes, tags, and related lesson.
-- `resources`: external URL, notes, tags, and related lesson.
+The database is stored at `/data/learning.db` inside the container. A named volume avoids host UID/permission differences across Linux, macOS, and Windows.
 
-## Backup
+Normal shutdown preserves data:
 
-Use “Export backup” in the sidebar or open `http://127.0.0.1:8765/backup.json`. Exam attempts, answer details, V2 metadata, and paper snapshots are included.
+```bash
+docker compose down
+```
 
-## Security Boundary
+Only this command explicitly deletes the Docker volume:
 
-The current version is designed as a personal local learning tool and has no login system by default. Add authentication and a reverse proxy before exposing it to a LAN or public internet. User Markdown is sanitized and external links are restricted to `http://` and `https://`. Coding-exam execution is disabled by default and must use an isolated execution environment when enabled later.
+```bash
+docker compose down -v
+```
+
+Use the in-app Data & Backup workflow for migration rather than copying the SQLite file directly.
+
+## Main pages
+
+| Page | Path |
+|---|---|
+| Learning dashboard | `/` |
+| Adaptive mastery profile | `/adaptive` |
+| Sequential adaptive test | `/adaptive-test` |
+| Exam center | `/exam-lab` |
+| Coding labs | `/coding-labs` |
+| Mistake book | `/mistakes` |
+| Score history | `/exam-history` |
+| Thoughts | `/thoughts` |
+| External resources | `/resources` |
+| Global search | `/search` |
+| Data & backup | `/data-management` |
+| Diagnostics | `/diagnostics` |
+
+## Data protection
+
+Data & Backup supports full JSON export, format validation, explicit destructive-restore confirmation, automatic pre-restore snapshots, transactional rollback, legacy-backup compatibility, and validation of restored URLs and critical ranges.
+
+Rolling startup backups are enabled by default:
+
+```text
+LLM_AUTO_BACKUP=1
+LLM_AUTO_BACKUP_HOURS=24
+LLM_AUTO_BACKUP_KEEP=10
+```
+
+## Coding labs
+
+Arbitrary learner code is disabled by default. Build the isolated runner first:
+
+```bash
+docker build -t llm-learning-sandbox:py312 sandbox
+```
+
+Then configure:
+
+```text
+LLM_CODE_RUNNER=docker
+LLM_CODE_RUNNER_IMAGE=llm-learning-sandbox:py312
+```
+
+The coding sandbox uses no network, resource limits, a non-root user, a read-only workspace, dropped capabilities, and is exercised by a real CI smoke test.
+
+## Security boundary
+
+The default product scope is a single-user local application:
+
+- Python listens on `127.0.0.1` by default;
+- Docker publishes only `127.0.0.1:8765`;
+- Trusted Host enforcement;
+- cross-site write blocking;
+- sanitized Markdown HTML;
+- HTTP(S)-only external resource URLs;
+- security response headers;
+- no-store caching on sensitive JSON endpoints.
+
+If the application is exposed to a LAN or public network, add authentication and a reverse proxy. That is outside the default single-user local deployment scope.
+
+## Health and diagnostics
+
+Basic health endpoint:
+
+```text
+GET /health
+```
+
+Full diagnostics:
+
+```text
+GET /diagnostics
+GET /api/diagnostics
+```
+
+Diagnostics cover SQLite integrity/WAL/busy timeout, question-bank quality, Code Runner configuration, and backup state.
