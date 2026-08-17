@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Adaptive Test' if lang == 'en' else '自适应测试' }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="adaptive-test-page">
+  <section class="adaptive-test-progress">
+    <div><span>CAT</span><strong>{{ answered_count + 1 }} / {{ session.max_items }}</strong></div>
+    <div class="adaptive-progress-track"><i style="width:{{ ((answered_count + 1) / session.max_items * 100)|round(1) }}%"></i></div>
+    <div class="adaptive-target-mini">{% for tag, item in tag_state.items() %}<span>{{ tag }} <b>{{ item.score|round(0)|int }}</b></span>{% endfor %}</div>
+  </section>
+
+  <section class="adaptive-question-card">
+    <div class="question-meta">
+      <span>Week {{ item.lesson_key.replace('week','')|int }}</span>
+      <span class="difficulty {{ item.difficulty }}">{{ item.difficulty }}</span>
+      {% for tag in item.knowledge %}<span class="knowledge-chip">{{ tag }}</span>{% endfor %}
+    </div>
+    <h1>{{ question.prompt }}</h1>
+    <form method="post" action="/adaptive-test/{{ session.id }}/answer" class="adaptive-answer-form">
+      {% if question.type == 'single' %}
+        {% for opt in question.options %}<label class="answer-option"><input type="radio" name="q_{{ question.id }}" value="{{ opt.value }}" required><span>{{ opt.label }}</span></label>{% endfor %}
+      {% elif question.type == 'multiple' %}
+        {% for opt in question.options %}<label class="answer-option"><input type="checkbox" name="q_{{ question.id }}" value="{{ opt.value }}"><span>{{ opt.label }}</span></label>{% endfor %}
+      {% elif question.type == 'boolean' %}
+        <label class="answer-option"><input type="radio" name="q_{{ question.id }}" value="true" required><span>{{ 'True' if lang == 'en' else '正确' }}</span></label>
+        <label class="answer-option"><input type="radio" name="q_{{ question.id }}" value="false" required><span>{{ 'False' if lang == 'en' else '错误' }}</span></label>
+      {% elif question.type == 'fill' %}
+        <input class="adaptive-text-input" type="text" name="q_{{ question.id }}" autocomplete="off" required>
+      {% else %}
+        <textarea class="adaptive-textarea" name="q_{{ question.id }}" rows="8" required></textarea>
+      {% endif %}
+      <div class="adaptive-submit-row"><span>{{ 'Your answer changes what comes next.' if lang == 'en' else '你的本题表现会直接影响下一题。' }}</span><button class="adaptive-btn primary big" type="submit">{{ 'Submit & next' if lang == 'en' else '提交并进入下一题' }}</button></div>
+    </form>
+  </section>
+</div>
+{% endblock %}
