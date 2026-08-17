@@ -16,6 +16,7 @@ TABLE_ORDER = [
     "exam_answers",
     "exam_v2_meta",
     "exam_attempt_questions",
+    "exam_question_snapshots",
     "exam_runtime",
     "code_attempts",
     "adaptive_sessions",
@@ -56,7 +57,6 @@ def parse_backup_json(text: str) -> dict[str, list[dict[str, Any]]]:
     if not isinstance(payload, dict):
         raise BackupError("Backup root must be a JSON object")
 
-    # Compatibility: older V2 development snapshots briefly used an envelope.
     if payload.get("format") == "llm-engineering-learning-backup" and "tables" in payload:
         version = int(payload.get("version") or 0)
         if version < 1 or version > BACKUP_FORMAT_VERSION:
@@ -89,7 +89,7 @@ def parse_backup_json(text: str) -> dict[str, list[dict[str, Any]]]:
 def write_safety_snapshot(db: Database) -> Path:
     backup_dir = db.path.parent / "backups"
     backup_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     path = backup_dir / f"pre-restore-{stamp}.json"
     path.write_text(export_all_json(db), encoding="utf-8")
     return path
