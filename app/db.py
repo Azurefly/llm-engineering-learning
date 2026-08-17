@@ -20,9 +20,10 @@ class Database:
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:
-        conn = sqlite3.connect(self.path)
+        conn = sqlite3.connect(self.path, timeout=5.0)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA busy_timeout = 5000")
         try:
             yield conn
             conn.commit()
@@ -31,6 +32,10 @@ class Database:
 
     def init(self) -> None:
         with self.connect() as conn:
+            # WAL allows readers to continue while short autosave writes occur.
+            # NORMAL synchronous is the standard durability/performance tradeoff for WAL.
+            conn.execute("PRAGMA journal_mode = WAL")
+            conn.execute("PRAGMA synchronous = NORMAL")
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS lesson_progress (
