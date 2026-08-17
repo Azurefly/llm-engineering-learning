@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{% if lang == 'en' %}Coding Labs{% else %}代码实训{% endif %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><div class="eyebrow">PRACTICAL ASSESSMENT</div><h1>{% if lang == 'en' %}Coding Labs{% else %}代码实训考试{% endif %}</h1><p>{% if lang == 'en' %}System-graded Python exercises. The sandbox is disabled by default and must be explicitly enabled.{% else %}由系统执行测试用例自动评分的 Python 实训。沙箱默认关闭，需要显式启用后才执行代码。{% endif %}</p></div></div>
+<div class="coding-grid">
+{% for item in coding_items %}
+<a class="coding-card" href="/coding-labs/{{ item.lesson.key }}">
+  <div class="week-label">WEEK {{ item.lesson.week }}</div>
+  <h3>{{ item.title }}</h3>
+  <p>{{ item.lesson.title_en if lang == 'en' else item.lesson.title_zh }}</p>
+  <div class="coding-stats"><span>{% if lang == 'en' %}Attempts{% else %}提交次数{% endif %} <strong>{{ item.attempt_count }}</strong></span><span>{% if lang == 'en' %}Best{% else %}最高分{% endif %} <strong>{% if item.best is not none %}{{ item.best|round(1) }}%{% else %}—{% endif %}</strong></span></div>
+</a>
+{% endfor %}
+</div>
+{% endblock %}
