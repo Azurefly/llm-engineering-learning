@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Search' if lang == 'en' else '全局搜索' }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="adaptive-page">
+  <section class="adaptive-hero">
+    <div><div class="adaptive-eyebrow">WORKSPACE SEARCH</div><h1>{{ 'Search your learning workspace' if lang == 'en' else '搜索学习工作区' }}</h1><p>{{ 'Search course Markdown, your thoughts, and saved external resources from one place.' if lang == 'en' else '一次搜索课程 Markdown、个人思考与已收藏的外部资料。' }}</p></div>
+  </section>
+  <section class="adaptive-card">
+    <form method="get" action="/search" class="search-form">
+      <input class="adaptive-text-input" type="search" name="q" value="{{ query }}" maxlength="120" placeholder="{{ 'Search Transformer, RAG, notes, URLs…' if lang == 'en' else '搜索 Transformer、RAG、笔记、链接…' }}" autofocus>
+      <button class="adaptive-btn primary" type="submit">{{ 'Search' if lang == 'en' else '搜索' }}</button>
+    </form>
+    {% if query %}<div class="search-summary">{{ results|length }} {{ 'results for' if lang == 'en' else '条结果，关键词' }} <strong>{{ query }}</strong></div>{% endif %}
+  </section>
+  {% if query %}
+  <section class="search-results">
+    {% for item in results %}
+    <a class="search-result-card" href="{{ item.url }}">
+      <div class="search-result-kind {{ item.kind }}">{% if item.kind == 'course' %}{{ 'Course' if lang == 'en' else '课程' }}{% elif item.kind == 'thought' %}{{ 'Thought' if lang == 'en' else '思考' }}{% else %}{{ 'Resource' if lang == 'en' else '资料' }}{% endif %}</div>
+      <div><h3>{{ item.title }}</h3><p>{{ item.snippet }}</p></div><span>→</span>
+    </a>
+    {% else %}
+    <div class="adaptive-card adaptive-empty"><strong>{{ 'No matching content.' if lang == 'en' else '没有找到匹配内容。' }}</strong><p>{{ 'Try a broader technical keyword.' if lang == 'en' else '可以尝试更宽泛的技术关键词。' }}</p></div>
+    {% endfor %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
