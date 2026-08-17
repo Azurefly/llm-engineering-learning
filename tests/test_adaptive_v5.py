@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.adaptive_v5 import _desired_difficulty, _session_tag_state, db
-from app.main_v5 import app
+from app.current import app
 
 client = TestClient(app)
 
@@ -13,9 +13,8 @@ def _cleanup(session_id: int) -> None:
         conn.execute("DELETE FROM adaptive_session_items WHERE session_id=?", (session_id,))
         conn.execute("DELETE FROM adaptive_sessions WHERE id=?", (session_id,))
         if attempt_id:
-            conn.execute("DELETE FROM exam_answers WHERE attempt_id=?", (attempt_id,))
-            conn.execute("DELETE FROM exam_attempt_questions WHERE attempt_id=?", (attempt_id,))
-            conn.execute("DELETE FROM exam_v2_meta WHERE attempt_id=?", (attempt_id,))
+            for table in ("exam_runtime", "exam_answers", "exam_question_snapshots", "exam_attempt_questions", "exam_v2_meta"):
+                conn.execute(f"DELETE FROM {table} WHERE attempt_id=?", (attempt_id,))
             conn.execute("DELETE FROM exam_attempts WHERE id=?", (attempt_id,))
 
 
@@ -33,7 +32,7 @@ def test_zero_mastery_is_not_replaced_by_neutral_default(monkeypatch):
     assert state["Guardrails"]["score"] == 0.0
 
 
-def test_sequential_adaptive_session_creates_system_graded_exam():
+def test_sequential_adaptive_session_is_resumable_and_immutable():
     started = client.post("/adaptive-test/start", follow_redirects=False)
     assert started.status_code == 303
     session_id = int(started.headers["location"].rsplit("/", 1)[-1])
@@ -44,22 +43,29 @@ def test_sequential_adaptive_session_creates_system_graded_exam():
         first = client.get(f"/adaptive-test/{session_id}")
         assert first.status_code == 200
         assert "CAT" in first.text
+        resumed = client.get('/adaptive-test')
+        assert resumed.status_code == 200
+        assert f"#{session_id}" in resumed.text
+
         with db.connect() as conn:
-            first_qid = conn.execute(
-                "SELECT question_id FROM adaptive_session_items WHERE session_id=? AND seq=1",
+            first_row = conn.execute(
+                "SELECT question_id,question_json FROM adaptive_session_items WHERE session_id=? AND seq=1",
                 (session_id,),
-            ).fetchone()[0]
+            ).fetchone()
+        assert first_row[0]
+        assert first_row[1] and 'question' not in first_row[1].lower()
 
         answer1 = client.post(f"/adaptive-test/{session_id}/answer", data={}, follow_redirects=False)
         assert answer1.status_code == 303
         second = client.get(answer1.headers["location"])
         assert second.status_code == 200
         with db.connect() as conn:
-            second_qid = conn.execute(
-                "SELECT question_id FROM adaptive_session_items WHERE session_id=? AND seq=2",
+            second_row = conn.execute(
+                "SELECT question_id,question_json FROM adaptive_session_items WHERE session_id=? AND seq=2",
                 (session_id,),
-            ).fetchone()[0]
-        assert second_qid != first_qid
+            ).fetchone()
+        assert second_row[0] != first_row[0]
+        assert second_row[1]
 
         answer2 = client.post(f"/adaptive-test/{session_id}/answer", data={}, follow_redirects=False)
         assert answer2.status_code == 303
@@ -72,7 +78,9 @@ def test_sequential_adaptive_session_creates_system_graded_exam():
             attempt_id = int(session[1])
             mode = conn.execute("SELECT mode FROM exam_v2_meta WHERE attempt_id=?", (attempt_id,)).fetchone()[0]
             answer_count = conn.execute("SELECT COUNT(*) FROM exam_answers WHERE attempt_id=?", (attempt_id,)).fetchone()[0]
+            snapshots = conn.execute("SELECT COUNT(*) FROM exam_question_snapshots WHERE attempt_id=?", (attempt_id,)).fetchone()[0]
         assert mode == "adaptive-sequential"
         assert answer_count == 2
+        assert snapshots == 2
     finally:
         _cleanup(session_id)
