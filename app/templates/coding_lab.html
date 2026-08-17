@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="coding-page">
+  <div class="page-head"><div><div class="eyebrow">WEEK {{ lesson.week }} · CODE EXAM</div><h1>{{ title }}</h1><p>{{ prompt }}</p></div><a class="btn" href="/coding-labs">{% if lang == 'en' %}All labs{% else %}全部实训{% endif %}</a></div>
+  <div class="coding-layout">
+    <section class="code-editor-card">
+      <div class="panel-head"><h3>solution.py</h3><span class="badge">Python · pytest</span></div>
+      <form method="post" action="/coding-labs/{{ lesson.key }}/run">
+        <textarea class="code-editor" name="source_code" spellcheck="false">{{ source }}</textarea>
+        <div class="code-submit"><span>{% if lang == 'en' %}The server grades only through the configured isolated runner.{% else %}系统只会通过已配置的隔离执行器评分，不在 Web 进程中直接执行代码。{% endif %}</span><button class="btn btn-primary" type="submit">{% if lang == 'en' %}Run & grade{% else %}运行并评分{% endif %}</button></div>
+      </form>
+    </section>
+    <aside class="code-history-card"><h3>{% if lang == 'en' %}Recent attempts{% else %}最近提交{% endif %}</h3>{% if history %}{% for row in history %}<a href="/coding-labs/{{ lesson.key }}/result/{{ row.id }}" class="code-history-row"><span>#{{ row.id }}</span><strong>{{ row.score_percent|round(1) }}%</strong><small>{% if row.passed %}✓ PASS{% else %}×{% endif %}</small></a>{% endfor %}{% else %}<p class="muted">{% if lang == 'en' %}No attempts yet.{% else %}还没有提交记录。{% endif %}</p>{% endif %}</aside>
+  </div>
+</div>
+{% endblock %}
