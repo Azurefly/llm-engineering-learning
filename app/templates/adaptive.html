@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Adaptive Learning' if lang == 'en' else '自适应学习' }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="adaptive-page">
+  <section class="adaptive-hero">
+    <div>
+      <div class="adaptive-eyebrow">V4 · ADAPTIVE LEARNING</div>
+      <h1>{{ 'Adaptive Learning Profile' if lang == 'en' else '自适应学习画像' }}</h1>
+      <p>{{ 'Mastery is calculated from actual system-graded exams and coding labs, not manually entered progress.' if lang == 'en' else '掌握度直接由系统评分考试与代码实训结果计算，不依赖手工填写进度。' }}</p>
+    </div>
+    <div class="overall-score">
+      <strong>{{ overall|round(1) }}</strong><span>/ 100</span>
+      <small>{{ 'Overall mastery' if lang == 'en' else '综合掌握度' }}</small>
+    </div>
+  </section>
+
+  <section class="adaptive-kpis">
+    <div><span>{{ 'Evidence' if lang == 'en' else '评分证据' }}</span><strong>{{ evidence_total }}</strong><small>{{ 'question / code signals' if lang == 'en' else '逐题 / 代码信号' }}</small></div>
+    <div><span>{{ 'Weak' if lang == 'en' else '薄弱' }}</span><strong>{{ distribution.weak }}</strong><small>&lt; 40</small></div>
+    <div><span>{{ 'Developing' if lang == 'en' else '学习中' }}</span><strong>{{ distribution.developing }}</strong><small>40–69</small></div>
+    <div><span>{{ 'Mastered' if lang == 'en' else '已掌握' }}</span><strong>{{ distribution.mastered }}</strong><small>≥ 85</small></div>
+  </section>
+
+  <div class="adaptive-grid two-col">
+    <section class="adaptive-card radar-card">
+      <div class="adaptive-card-head">
+        <div><span class="section-kicker">{{ 'CAPABILITY MAP' if lang == 'en' else '能力结构' }}</span><h2>{{ 'Six-domain radar' if lang == 'en' else '六维能力雷达' }}</h2></div>
+      </div>
+      <div class="radar-wrap">
+        <canvas id="masteryRadar" width="520" height="360" data-items='{{ domains|tojson }}'></canvas>
+      </div>
+      <div class="domain-legend">
+        {% for item in domains %}
+        <div><span>{{ item.label }}</span><strong>{{ item.score|round(1) }}</strong><div class="mini-track"><i style="width:{{ item.score }}%"></i></div></div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="adaptive-card recommendation-card">
+      <div class="adaptive-card-head">
+        <div><span class="section-kicker">{{ 'NEXT BEST ACTION' if lang == 'en' else '下一步建议' }}</span><h2>{{ 'Priority review plan' if lang == 'en' else '优先复习计划' }}</h2></div>
+        {% if recommendations %}
+        <form method="post" action="/adaptive/review/start"><button class="adaptive-btn primary" type="submit">{{ 'Generate review exam' if lang == 'en' else '生成薄弱项复习卷' }}</button></form>
+        {% endif %}
+      </div>
+      {% if recommendations %}
+      <div class="recommendation-list">
+        {% for item in recommendations %}
+        <article class="recommendation-item">
+          <div class="recommendation-score status-{{ item.status }}">{{ item.score|round(0)|int }}</div>
+          <div class="recommendation-main">
+            <strong>{{ item.tag }}</strong>
+            <span>{{ 'Evidence' if lang == 'en' else '证据' }} {{ item.evidence_count }} · {{ 'Errors' if lang == 'en' else '低分记录' }} {{ item.wrong_count }}</span>
+            <a href="/course/{{ item.lesson_key }}">Week {{ item.lesson.week }} · {{ item.lesson.en if lang == 'en' else item.lesson.zh }} →</a>
+          </div>
+          <form method="post" action="/adaptive/review/start">
+            <input type="hidden" name="knowledge" value="{{ item.tag }}">
+            <button class="adaptive-btn" type="submit">{{ 'Practice' if lang == 'en' else '专项练习' }}</button>
+          </form>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="adaptive-empty">
+        <strong>{{ 'No weak areas detected yet.' if lang == 'en' else '当前还没有识别到明确薄弱项。' }}</strong>
+        <p>{{ 'Complete more system-graded exams or coding labs to build a reliable mastery profile.' if lang == 'en' else '继续完成系统考试或代码实训，系统会逐步建立更可靠的能力画像。' }}</p>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="adaptive-card">
+    <div class="adaptive-card-head">
+      <div><span class="section-kicker">{{ 'KNOWLEDGE MASTERY' if lang == 'en' else '知识点掌握度' }}</span><h2>{{ 'Knowledge-point profile' if lang == 'en' else '知识点能力画像' }}</h2></div>
+      <div class="mastery-scale"><span class="weak">0–39</span><span class="developing">40–69</span><span class="proficient">70–84</span><span class="mastered">85–100</span></div>
+    </div>
+    <div class="mastery-table">
+      <div class="mastery-row mastery-header"><span>{{ 'Knowledge' if lang == 'en' else '知识点' }}</span><span>{{ 'Mastery' if lang == 'en' else '掌握度' }}</span><span>{{ 'Confidence' if lang == 'en' else '可信度' }}</span><span>{{ 'Evidence' if lang == 'en' else '证据' }}</span><span></span></div>
+      {% for item in mastery_items %}
+      <div class="mastery-row">
+        <div><strong>{{ item.tag }}</strong><small>{% for w in item.weeks[:3] %}{{ w.replace('week','W') }}{% if not loop.last %} · {% endif %}{% endfor %}</small></div>
+        <div><div class="score-inline"><strong>{{ item.score|round(1) }}</strong><span class="status-chip {{ item.status }}">{{ item.status }}</span></div><div class="mastery-track"><i class="{{ item.status }}" style="width:{{ item.score }}%"></i></div></div>
+        <div><strong>{{ (item.confidence * 100)|round(0)|int }}%</strong></div>
+        <div><strong>{{ item.evidence_count }}</strong><small>{{ item.wrong_count }} {{ 'low-score' if lang == 'en' else '次低分' }}</small></div>
+        <div>{% if item.status in ['weak','developing'] %}<form method="post" action="/adaptive/review/start"><input type="hidden" name="knowledge" value="{{ item.tag }}"><button class="adaptive-link" type="submit">{{ 'Review' if lang == 'en' else '复习' }} →</button></form>{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="adaptive-card trend-card">
+    <div class="adaptive-card-head"><div><span class="section-kicker">{{ 'ASSESSMENT TREND' if lang == 'en' else '评测趋势' }}</span><h2>{{ 'Recent system-graded results' if lang == 'en' else '最近系统评分表现' }}</h2></div></div>
+    {% if trend %}
+    <div class="trend-chart">
+      {% for item in trend %}
+      <div class="trend-column" title="{{ item.label }} · {{ item.score }}%"><span>{{ item.score|round(0)|int }}</span><div><i class="{{ item.kind }}" style="height:{{ item.score }}%"></i></div><small>{{ item.label }}</small></div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="adaptive-empty"><p>{{ 'No assessment history yet.' if lang == 'en' else '还没有评测历史。' }}</p></div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
