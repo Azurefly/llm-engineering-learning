@@ -42,3 +42,34 @@ jobs:
           LLM_CODE_RUNNER: docker
           LLM_CODE_RUNNER_IMAGE: llm-learning-sandbox:py312
         run: python scripts/sandbox_smoke.py
+
+  app-docker-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start hardened application
+        run: docker compose up -d --build
+      - name: Wait for healthcheck
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8765/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker compose ps
+          docker compose logs
+          exit 1
+      - name: Smoke current feature routes
+        run: |
+          curl -fsS http://127.0.0.1:8765/ >/dev/null
+          curl -fsS http://127.0.0.1:8765/adaptive >/dev/null
+          curl -fsS http://127.0.0.1:8765/adaptive-test >/dev/null
+          curl -fsS 'http://127.0.0.1:8765/search?q=Transformer' >/dev/null
+          curl -fsS http://127.0.0.1:8765/api/diagnostics >/dev/null
+      - name: Container status
+        run: docker compose ps
+      - name: Stop application
+        if: always()
+        run: docker compose down -v
