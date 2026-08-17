@@ -1,0 +1,145 @@
+from __future__ import annotations
+
+from .code_exam import CHALLENGES, CodeChallenge
+
+
+EXTRA_CHALLENGES: dict[str, CodeChallenge] = {
+    "week03": CodeChallenge(
+        "context-budget",
+        "week03",
+        "上下文 Token 预算",
+        "Context Token Budget",
+        "实现 keep_recent(messages, max_tokens)。messages 是按时间从旧到新排列、包含 tokens 字段的字典列表。返回在总 tokens 不超过 max_tokens 前提下尽可能多的最新消息，并保持原顺序；不要修改输入。",
+        "Implement keep_recent(messages, max_tokens). messages is ordered oldest-to-newest and each dict has a tokens field. Keep as many recent messages as possible without exceeding max_tokens, preserve their original order, and do not mutate the input.",
+        """def keep_recent(messages, max_tokens):\n    # TODO\n    raise NotImplementedError\n""",
+        """from solution import keep_recent\n\ndef test_recent_messages_fit_budget():\n    rows=[{'id':'a','tokens':3},{'id':'b','tokens':4},{'id':'c','tokens':2}]\n    assert [x['id'] for x in keep_recent(rows,6)]==['b','c']\n\ndef test_all_fit():\n    rows=[{'id':'a','tokens':1},{'id':'b','tokens':2}]\n    assert keep_recent(rows,5)==rows\n\ndef test_single_too_large_is_skipped():\n    rows=[{'id':'a','tokens':2},{'id':'b','tokens':10},{'id':'c','tokens':2}]\n    assert [x['id'] for x in keep_recent(rows,4)]==['a','c']\n\ndef test_input_not_mutated():\n    rows=[{'id':'a','tokens':1},{'id':'b','tokens':2}]\n    before=[dict(x) for x in rows]\n    keep_recent(rows,2)\n    assert rows==before\n""",
+    ),
+    "week04": CodeChallenge(
+        "causal-mask",
+        "week04",
+        "Causal Attention Mask",
+        "Causal Attention Mask",
+        "实现 causal_mask(n)，返回 n×n 的整数二维列表：当前位置可以看到自己和过去位置时为 1，未来位置为 0。n<=0 返回空列表。",
+        "Implement causal_mask(n), returning an n-by-n integer matrix where a position may attend to itself and earlier positions (1) but not future positions (0). Return [] for n<=0.",
+        """def causal_mask(n):\n    # TODO\n    raise NotImplementedError\n""",
+        """from solution import causal_mask\n\ndef test_three_tokens():\n    assert causal_mask(3)==[[1,0,0],[1,1,0],[1,1,1]]\n\ndef test_one():\n    assert causal_mask(1)==[[1]]\n\ndef test_empty():\n    assert causal_mask(0)==[]\n    assert causal_mask(-1)==[]\n\ndef test_shape():\n    out=causal_mask(5)\n    assert len(out)==5 and all(len(row)==5 for row in out)\n""",
+    ),
+    "week05": CodeChallenge(
+        "retry-backoff",
+        "week05",
+        "LLM API 指数退避",
+        "LLM API Exponential Backoff",
+        "实现 retry_delays(base, attempts, cap)，返回 attempts 次重试对应的指数退避秒数：base, base*2, base*4...，每项不超过 cap。attempts<=0 返回空列表。",
+        "Implement retry_delays(base, attempts, cap), returning exponential retry delays base, base*2, base*4... capped at cap. Return [] when attempts<=0.",
+        """def retry_delays(base, attempts, cap):\n    # TODO\n    raise NotImplementedError\n""",
+        """from solution import retry_delays\n\ndef test_backoff():\n    assert retry_delays(1,4,100)==[1,2,4,8]\n\ndef test_cap():\n    assert retry_delays(2,5,10)==[2,4,8,10,10]\n\ndef test_zero_attempts():\n    assert retry_delays(1,0,5)==[]\n\ndef test_float_base():\n    assert retry_delays(0.5,3,2)==[0.5,1.0,2.0]\n""",
+    ),
+    "week06": CodeChallenge(
+        "tool-call-validation",
+        "week06",
+        "Tool Call 参数校验",
+        "Tool Call Validation",
+        "实现 validate_tool_call(call, schemas)。schemas 形如 {'search':['query'], 'delete':['id']}。call 包含 name 和 arguments。只有工具在白名单内、arguments 为 dict 且所有 required 参数存在且非空时返回 True。",
+        "Implement validate_tool_call(call, schemas). schemas looks like {'search':['query'], 'delete':['id']}. Return True only when the tool is allowed, arguments is a dict, and all required arguments exist and are non-empty.",
+        """def validate_tool_call(call, schemas):\n    # TODO\n    raise NotImplementedError\n""",
+        """from solution import validate_tool_call\n\nSCHEMAS={'search':['query'],'delete':['id']}\n\ndef test_valid():\n    assert validate_tool_call({'name':'search','arguments':{'query':'RAG'}},SCHEMAS) is True\n\ndef test_unknown_tool():\n    assert validate_tool_call({'name':'shell','arguments':{}},SCHEMAS) is False\n\ndef test_missing_required():\n    assert validate_tool_call({'name':'delete','arguments':{}},SCHEMAS) is False\n\ndef test_empty_required():\n    assert validate_tool_call({'name':'search','arguments':{'query':''}},SCHEMAS) is False\n\ndef test_arguments_must_be_dict():\n    assert validate_tool_call({'name':'search','arguments':'RAG'},SCHEMAS) is False\n""",
+    ),
+    "week07": CodeChallenge(
+        "cosine-similarity",
+        "week07",
+        "Embedding 余弦相似度",
+        "Embedding Cosine Similarity",
+        "实现 cosine_similarity(a, b)。长度不同抛出 ValueError；任一向量范数为 0 时返回 0.0；否则返回余弦相似度。",
+        "Implement cosine_similarity(a, b). Raise ValueError for different lengths, return 0.0 when either norm is zero, otherwise return cosine similarity.",
+        """import math\n\ndef cosine_similarity(a, b):\n    # TODO\n    raise NotImplementedError\n""",
+        """import math\nimport pytest\nfrom solution import cosine_similarity\n\ndef test_identical():\n    assert abs(cosine_similarity([1,2],[1,2])-1.0)<1e-9\n\ndef test_orthogonal():\n    assert abs(cosine_similarity([1,0],[0,1]))<1e-9\n\ndef test_zero_vector():\n    assert cosine_similarity([0,0],[1,2])==0.0\n\ndef test_length_mismatch():\n    with pytest.raises(ValueError): cosine_similarity([1],[1,2])\n""",
+    ),
+    "week09": CodeChallenge(
+        "rrf-fusion",
+        "week09",
+        "Reciprocal Rank Fusion",
+        "Reciprocal Rank Fusion",
+        "实现 rrf(rankings, k=60)。rankings 是多个按相关性排序的文档 ID 列表。每个文档得分累加 1/(k+rank)，rank 从 1 开始。返回 (doc_id, score) 列表，按 score 降序、同分按 doc_id 升序。",
+        "Implement rrf(rankings, k=60). rankings is a list of ranked document-id lists. Accumulate 1/(k+rank), with rank starting at 1. Return (doc_id, score) pairs sorted by descending score then ascending doc_id.",
+        """def rrf(rankings, k=60):\n    # TODO\n    raise NotImplementedError\n""",
+        """from solution import rrf\n\ndef test_common_doc_wins():\n    out=rrf([['a','b','c'],['b','d','a']])\n    assert out[0][0]=='b'\n\ndef test_score_formula():\n    out=dict(rrf([['a','b']],k=10))\n    assert abs(out['a']-1/11)<1e-12\n    assert abs(out['b']-1/12)<1e-12\n\ndef test_tie_break_by_id():\n    out=rrf([['b'],['a']],k=60)\n    assert [x[0] for x in out]==['a','b']\n\ndef test_empty():\n    assert rrf([])==[]\n""",
+    ),
+    "week10": CodeChallenge(
+        "recall-at-k",
+        "week10",
+        "RAG Recall@K",
+        "RAG Recall@K",
+        "实现 recall_at_k(relevant, retrieved, k)。relevant 和 retrieved 是文档 ID 序列；返回 Top-K 检索结果覆盖相关文档集合的比例。relevant 为空时返回 1.0。",
+        "Implement recall_at_k(relevant, retrieved, k). Return the fraction of the relevant-document set covered by the first k retrieved IDs. Return 1.0 when relevant is empty.",
+        """def recall_at_k(relevant, retrieved, k):\n    # TODO\n    raise NotImplementedError\n""",
+        """from solution import recall_at_k\n\ndef test_basic():\n    assert recall_at_k(['a','c'],['a','b','c'],2)==0.5\n    assert recall_at_k(['a','c'],['a','b','c'],3)==1.0\n\ndef test_deduplicate_relevant():\n    assert recall_at_k(['a','a'],['a'],1)==1.0\n\ndef test_empty_relevant():\n    assert recall_at_k([],['x'],1)==1.0\n\ndef test_zero_k():\n    assert recall_at_k(['a'],['a'],0)==0.0\n""",
+    ),
+    "week12": CodeChallenge(
+        "agent-policy",
+        "week12",
+        "Agent Guardrail 决策",
+        "Agent Guardrail Decision",
+        "实现 guard_decision(step, max_steps, repeat_count, risk, approved)。达到 max_steps 或 repeat_count>=3 返回 'DENY'；risk='high' 且未 approved 返回 'ASK'；其余返回 'ALLOW'。",
+        "Implement guard_decision(step, max_steps, repeat_count, risk, approved). Return 'DENY' at max_steps or repeat_count>=3; return 'ASK' for high risk without approval; otherwise return 'ALLOW'.",
+        """def guard_decision(step, max_steps, repeat_count, risk, approved):\n    # TODO\n    raise NotImplementedError\n""",
+        """from solution import guard_decision\n\ndef test_max_steps_denied():\n    assert guard_decision(10,10,0,'low',True)=='DENY'\n\ndef test_repetition_denied():\n    assert guard_decision(2,10,3,'low',True)=='DENY'\n\ndef test_high_risk_asks():\n    assert guard_decision(2,10,0,'high',False)=='ASK'\n\ndef test_approved_high_risk_allowed():\n    assert guard_decision(2,10,0,'high',True)=='ALLOW'\n\ndef test_normal_allowed():\n    assert guard_decision(2,10,0,'low',False)=='ALLOW'\n""",
+    ),
+    "week13": CodeChallenge(
+        "mcp-tool-schema",
+        "week13",
+        "MCP Tool Schema 校验",
+        "MCP Tool Schema Validation",
+        "实现 valid_mcp_tool(tool)。合法工具必须有非空 name、非空 description，以及 inputSchema={'type':'object','properties':{...}}。额外字段允许存在。",
+        "Implement valid_mcp_tool(tool). A valid tool must have a non-empty name, non-empty description, and inputSchema={'type':'object','properties':{...}}. Extra fields are allowed.",
+        """def valid_mcp_tool(tool):\n    # TODO\n    raise NotImplementedError\n""",
+        """from solution import valid_mcp_tool\n\ndef test_valid():\n    assert valid_mcp_tool({'name':'search','description':'Search docs','inputSchema':{'type':'object','properties':{'q':{'type':'string'}}}}) is True\n\ndef test_missing_name():\n    assert valid_mcp_tool({'description':'x','inputSchema':{'type':'object','properties':{}}}) is False\n\ndef test_empty_description():\n    assert valid_mcp_tool({'name':'x','description':'','inputSchema':{'type':'object','properties':{}}}) is False\n\ndef test_schema_type():\n    assert valid_mcp_tool({'name':'x','description':'x','inputSchema':{'type':'array','properties':{}}}) is False\n\ndef test_properties_dict():\n    assert valid_mcp_tool({'name':'x','description':'x','inputSchema':{'type':'object','properties':[]}}) is False\n""",
+    ),
+    "week14": CodeChallenge(
+        "model-router",
+        "week14",
+        "模型路由选择",
+        "Model Router Selection",
+        "实现 choose_model(required, candidates, max_cost)。candidate 包含 name、capabilities、cost、latency。筛选 capabilities 覆盖 required 且 cost<=max_cost 的模型，优先 latency 最低，同延迟 cost 最低，再按 name 升序；无可用模型返回 None。",
+        "Implement choose_model(required, candidates, max_cost). Each candidate has name, capabilities, cost, and latency. Filter candidates covering all required capabilities with cost<=max_cost, then choose lowest latency, then lowest cost, then name; return None if none qualify.",
+        """def choose_model(required, candidates, max_cost):\n    # TODO\n    raise NotImplementedError\n""",
+        """from solution import choose_model\n\nC=[\n {'name':'fast','capabilities':['tool'],'cost':1,'latency':10},\n {'name':'reason','capabilities':['tool','reasoning'],'cost':3,'latency':30},\n {'name':'cheap-reason','capabilities':['tool','reasoning'],'cost':2,'latency':30},\n]\n\ndef test_capability_filter():\n    assert choose_model(['reasoning'],C,5)=='cheap-reason'\n\ndef test_cost_filter():\n    assert choose_model(['reasoning'],C,1) is None\n\ndef test_latency_priority():\n    assert choose_model(['tool'],C,5)=='fast'\n\ndef test_does_not_mutate():\n    before=[dict(x,capabilities=list(x['capabilities'])) for x in C]\n    choose_model(['tool'],C,5)\n    assert C==before\n""",
+    ),
+    "week15": CodeChallenge(
+        "tool-permission",
+        "week15",
+        "最小权限 Tool Policy",
+        "Least-Privilege Tool Policy",
+        "实现 can_execute(permission, destructive, approved, source_trusted)。permission 不为 'allow' 时拒绝；destructive=True 且未 approved 时拒绝；source_trusted=False 时所有 destructive 操作拒绝；其他返回 True。",
+        "Implement can_execute(permission, destructive, approved, source_trusted). Deny unless permission=='allow'; deny destructive operations without approval; deny all destructive actions from untrusted sources; otherwise return True.",
+        """def can_execute(permission, destructive, approved, source_trusted):\n    # TODO\n    raise NotImplementedError\n""",
+        """from solution import can_execute\n\ndef test_permission_required():\n    assert can_execute('deny',False,False,True) is False\n\ndef test_destructive_needs_approval():\n    assert can_execute('allow',True,False,True) is False\n\ndef test_untrusted_destructive_denied_even_if_approved():\n    assert can_execute('allow',True,True,False) is False\n\ndef test_safe_allowed():\n    assert can_execute('allow',False,False,False) is True\n\ndef test_trusted_approved_destructive_allowed():\n    assert can_execute('allow',True,True,True) is True\n""",
+    ),
+    "week16": CodeChallenge(
+        "kv-cache-size",
+        "week16",
+        "KV Cache 显存估算",
+        "KV Cache Memory Estimate",
+        "实现 kv_cache_bytes(layers, kv_heads, head_dim, tokens, bytes_per_element=2, batch=1)。公式需同时计算 K 和 V：2 * layers * kv_heads * head_dim * tokens * bytes_per_element * batch。任一维度为负数抛出 ValueError。",
+        "Implement kv_cache_bytes(layers, kv_heads, head_dim, tokens, bytes_per_element=2, batch=1). Include both K and V: 2 * layers * kv_heads * head_dim * tokens * bytes_per_element * batch. Raise ValueError for any negative dimension.",
+        """def kv_cache_bytes(layers, kv_heads, head_dim, tokens, bytes_per_element=2, batch=1):\n    # TODO\n    raise NotImplementedError\n""",
+        """import pytest\nfrom solution import kv_cache_bytes\n\ndef test_formula():\n    assert kv_cache_bytes(2,4,8,10)==2*2*4*8*10*2\n\ndef test_batch():\n    assert kv_cache_bytes(1,2,4,5,batch=3)==2*1*2*4*5*2*3\n\ndef test_zero_tokens():\n    assert kv_cache_bytes(10,8,64,0)==0\n\ndef test_negative_rejected():\n    with pytest.raises(ValueError): kv_cache_bytes(1,1,1,-1)\n""",
+    ),
+    "week17": CodeChallenge(
+        "sft-dataset-cleaning",
+        "week17",
+        "SFT 数据清洗",
+        "SFT Dataset Cleaning",
+        "实现 clean_examples(rows)。每项包含 prompt/response；去掉首尾空白，丢弃空 prompt 或 response，按清洗后的 (prompt,response) 去重并保持首次出现顺序，返回新的字典列表且不要修改输入。",
+        "Implement clean_examples(rows). Each item has prompt/response. Strip whitespace, drop blank prompt or response, deduplicate by cleaned (prompt,response) while preserving first occurrence, return new dicts, and do not mutate input.",
+        """def clean_examples(rows):\n    # TODO\n    raise NotImplementedError\n""",
+        """from solution import clean_examples\n\ndef test_clean_and_drop_blank():\n    rows=[{'prompt':'  Q ','response':' A '},{'prompt':'','response':'x'}]\n    assert clean_examples(rows)==[{'prompt':'Q','response':'A'}]\n\ndef test_deduplicate():\n    rows=[{'prompt':'Q','response':'A'},{'prompt':' Q ','response':' A '} ]\n    assert clean_examples(rows)==[{'prompt':'Q','response':'A'}]\n\ndef test_preserve_order():\n    rows=[{'prompt':'Q1','response':'A1'},{'prompt':'Q2','response':'A2'}]\n    assert [x['prompt'] for x in clean_examples(rows)]==['Q1','Q2']\n\ndef test_input_not_mutated():\n    rows=[{'prompt':' Q ','response':' A '}]; before=[dict(rows[0])]\n    clean_examples(rows)\n    assert rows==before\n""",
+    ),
+}
+
+
+def install() -> None:
+    for lesson_key, challenge in EXTRA_CHALLENGES.items():
+        CHALLENGES.setdefault(lesson_key, challenge)
+
+
+install()
