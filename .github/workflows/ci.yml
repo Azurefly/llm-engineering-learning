@@ -80,6 +80,22 @@ jobs:
           curl -fsS http://127.0.0.1:8765/adaptive-test >/dev/null
           curl -fsS 'http://127.0.0.1:8765/search?q=Transformer' >/dev/null
           curl -fsS http://127.0.0.1:8765/api/diagnostics >/dev/null
+      - name: Verify SQLite persistence across container restart
+        run: |
+          curl -fsS -X POST http://127.0.0.1:8765/thoughts/save \
+            --data-urlencode 'title=CI Docker persistence probe' \
+            --data-urlencode 'content=named-volume-persistence-987654' \
+            --data-urlencode 'tags=ci' \
+            --data-urlencode 'lesson_key=week01' \
+            -o /dev/null
+          docker compose restart llm-learning
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8765/health >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl -fsS 'http://127.0.0.1:8765/search?q=named-volume-persistence-987654' | grep -q 'CI Docker persistence probe'
       - name: Container status
         run: docker compose ps
       - name: Stop application
