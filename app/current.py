@@ -8,6 +8,7 @@ from .adaptive import router as adaptive_router
 from .adaptive_v5 import router as adaptive_v5_router
 from .auto_backup import maybe_create_auto_backup
 from .code_exam import router as code_exam_router
+from . import code_challenges_v5  # noqa: F401 - fills coding labs for Week 2-18
 from .data_management import router as data_management_router
 from .diagnostics import router as diagnostics_router
 from .exam_v2 import db, router as exam_v2_router
