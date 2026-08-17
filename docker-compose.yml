@@ -11,7 +11,7 @@ services:
       PORT: 8765
       LLM_LEARNING_DATA_DIR: /data
     volumes:
-      - ./data:/data:rw
+      - llm-learning-data:/data
     tmpfs:
       - /tmp:size=32m,noexec,nosuid
     cap_drop:
@@ -24,3 +24,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+volumes:
+  llm-learning-data:
+    name: llm-engineering-learning-data
