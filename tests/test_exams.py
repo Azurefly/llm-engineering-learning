@@ -1,7 +1,8 @@
 from fastapi.testclient import TestClient
 
 from app.exam_system import EXAMS, grade_exam
-from app.main import app, db
+from app.main import db
+from app.main_v2 import app
 
 client = TestClient(app)
 
@@ -60,7 +61,6 @@ def test_exam_web_flow_updates_course_progress_and_blocks_manual_completion():
     assert progress["percent"] == 100
     assert progress["score"] == 100
 
-    # A normal progress POST cannot overwrite a completed/system-scored lesson.
     client.post("/course/week03/progress", data={"percent": 1}, follow_redirects=False)
     after = db.all_progress()["week03"]
     assert after["status"] == "completed"
