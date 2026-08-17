@@ -25,10 +25,11 @@
     <a href="/exam-history" class="nav-item {% if current_path.startswith('/exam-history') %}active{% endif %}">⌁ {{ 'Score History' if lang == 'en' else '成绩趋势' }}</a>
     <a href="/thoughts" class="nav-item {% if current_path.startswith('/thoughts') %}active{% endif %}">✎ {{ t('thoughts') }}</a>
     <a href="/resources" class="nav-item {% if current_path.startswith('/resources') %}active{% endif %}">↗ {{ t('resources') }}</a>
+    <a href="/data-management" class="nav-item {% if current_path.startswith('/data-management') %}active{% endif %}">▣ {{ 'Data & Backup' if lang == 'en' else '数据与备份' }}</a>
   </nav>
   <div class="sidebar-label">{{ t('curriculum') }}</div>
   <div class="lesson-nav">{% for item in lessons %}<a class="lesson-nav-item {% if current_path == '/course/' + item.key %}active{% endif %}" href="/course/{{ item.key }}"><span class="week-pill">{{ '%02d'|format(item.week) }}</span><span class="lesson-nav-text">{{ item.title }}</span>{% if item.progress.status == 'completed' %}<span class="status-dot done"></span>{% elif item.progress.status == 'in_progress' %}<span class="status-dot doing"></span>{% else %}<span class="status-dot"></span>{% endif %}</a>{% endfor %}</div>
-  <div class="sidebar-footer"><a href="/backup.json" class="footer-link">⇩ {{ t('backup') }}</a><div class="lang-switch"><a href="/language/zh-CN?next={{ current_path }}" class="{% if lang != 'en' %}selected{% endif %}">中文</a><a href="/language/en?next={{ current_path }}" class="{% if lang == 'en' %}selected{% endif %}">EN</a></div></div>
+  <div class="sidebar-footer"><a href="/data-management" class="footer-link">⇩ {{ t('backup') }}</a><div class="lang-switch"><a href="/language/zh-CN?next={{ current_path }}" class="{% if lang != 'en' %}selected{% endif %}">中文</a><a href="/language/en?next={{ current_path }}" class="{% if lang == 'en' %}selected{% endif %}">EN</a></div></div>
 </aside>
 <main class="main-content">{% block content %}{% endblock %}</main>
 </div>
