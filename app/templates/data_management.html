@@ -15,16 +15,23 @@
     </section>
     <section class="adaptive-card">
       <div class="adaptive-card-head"><div><span class="section-kicker">RESTORE</span><h2>{{ 'Restore from backup' if lang == 'en' else '从备份恢复' }}</h2></div></div>
-      <p>{{ 'Restore replaces current learning data. A safety snapshot is created automatically before import.' if lang == 'en' else '恢复会覆盖当前学习数据；导入前系统会自动创建一份安全快照。' }}</p>
+      <p>{{ 'Restore replaces current learning data. A safety snapshot is created automatically before import.' if lang == 'en' else '恢复会覆盖当前学习数据；导入前系统会自动创建一份安全快照。' }} {{ 'Maximum file size:' if lang == 'en' else '最大文件：' }} {{ restore_limit_mb }} MB.</p>
       <form method="post" action="/data-management/restore" enctype="multipart/form-data" class="stack-form">
         <input type="file" name="file" accept="application/json,.json" required>
+        <label class="restore-confirm"><input type="checkbox" name="confirm" value="replace" required> <span>{{ 'I understand that the current learning data will be replaced.' if lang == 'en' else '我确认本次恢复将覆盖当前学习数据。' }}</span></label>
         <button class="adaptive-btn" type="submit">{{ 'Validate & restore' if lang == 'en' else '校验并恢复' }}</button>
       </form>
     </section>
   </div>
-  <section class="adaptive-card">
-    <div class="adaptive-card-head"><div><span class="section-kicker">SAFETY SNAPSHOTS</span><h2>{{ 'Automatic pre-restore copies' if lang == 'en' else '自动恢复前快照' }}</h2></div></div>
-    {% if snapshots %}<div class="recommendation-list">{% for name in snapshots %}<article class="recommendation-item"><div class="recommendation-main"><strong>{{ name }}</strong><span>data/backups/</span></div></article>{% endfor %}</div>{% else %}<div class="adaptive-empty"><p>{{ 'No restore snapshot has been created yet.' if lang == 'en' else '当前还没有恢复前安全快照。' }}</p></div>{% endif %}
-  </section>
+  <div class="adaptive-grid two-col">
+    <section class="adaptive-card">
+      <div class="adaptive-card-head"><div><span class="section-kicker">ROLLING BACKUPS</span><h2>{{ 'Automatic startup backups' if lang == 'en' else '启动滚动备份' }}</h2></div></div>
+      {% if automatic_backups %}<div class="recommendation-list">{% for name in automatic_backups %}<article class="recommendation-item"><div class="recommendation-main"><strong>{{ name }}</strong><span>data/backups/</span></div></article>{% endfor %}</div>{% else %}<div class="adaptive-empty"><p>{{ 'No rolling backup has been created yet.' if lang == 'en' else '当前还没有滚动自动备份。' }}</p></div>{% endif %}
+    </section>
+    <section class="adaptive-card">
+      <div class="adaptive-card-head"><div><span class="section-kicker">SAFETY SNAPSHOTS</span><h2>{{ 'Automatic pre-restore copies' if lang == 'en' else '自动恢复前快照' }}</h2></div></div>
+      {% if snapshots %}<div class="recommendation-list">{% for name in snapshots %}<article class="recommendation-item"><div class="recommendation-main"><strong>{{ name }}</strong><span>data/backups/</span></div></article>{% endfor %}</div>{% else %}<div class="adaptive-empty"><p>{{ 'No restore snapshot has been created yet.' if lang == 'en' else '当前还没有恢复前安全快照。' }}</p></div>{% endif %}
+    </section>
+  </div>
 </div>
 {% endblock %}
