@@ -15,9 +15,9 @@ def test_versioned_backup_round_trip(tmp_path):
         )
     backup = export_all_json(db)
     payload = json.loads(backup)
-    assert payload["format"] == "llm-engineering-learning-backup"
-    assert payload["version"] >= 2
-    assert len(payload["tables"]["thoughts"]) == 1
+    assert payload["_meta"]["format"] == "llm-engineering-learning-backup"
+    assert payload["_meta"]["version"] >= 2
+    assert len(payload["thoughts"]) == 1
 
     with db.connect() as conn:
         conn.execute("DELETE FROM thoughts")
@@ -33,6 +33,11 @@ def test_versioned_backup_round_trip(tmp_path):
 def test_v1_backup_shape_is_still_accepted():
     tables = parse_backup_json('{"thoughts": [], "resources": []}')
     assert tables == {"thoughts": [], "resources": []}
+
+
+def test_brief_envelope_format_is_still_accepted():
+    tables = parse_backup_json('{"format":"llm-engineering-learning-backup","version":2,"tables":{"thoughts":[]}}')
+    assert tables == {"thoughts": []}
 
 
 def test_unknown_backup_table_is_rejected():
