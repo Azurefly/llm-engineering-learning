@@ -1,1 +1,88 @@
-{% extends "base.html" %}{% block title %}{{ t('dashboard') }} · {{ t('app_name') }}{% endblock %}{% block content %}<div class="page-head"><div><div class="eyebrow">LLM ENGINEERING</div><h1>{{ t('dashboard') }}</h1><p>{{ '把课程、进度、思考和外部资料放在同一个本地工作区。' if lang != 'en' else 'Keep curriculum, progress, thoughts, and external resources in one local workspace.' }}</p></div><div class="head-actions"><a class="btn btn-primary" href="/thoughts/new">＋ {{ t('add_thought') }}</a><a class="btn" href="/resources/new">＋ {{ t('add_resource') }}</a></div></div><div class="metric-grid"><div class="metric-card metric-primary"><div class="metric-label">{{ t('overall_progress') }}</div><div class="metric-value">{{ overall }}%</div><div class="progress-track"><div class="progress-bar" style="width:{{ overall }}%"></div></div></div><div class="metric-card"><div class="metric-label">{{ t('completed_lessons') }}</div><div class="metric-value">{{ stats.completed }}<small>/ {{ lessons|length }}</small></div></div><div class="metric-card"><div class="metric-label">{{ t('thought_count') }}</div><div class="metric-value">{{ stats.thought_count }}</div></div><div class="metric-card"><div class="metric-label">{{ t('resource_count') }}</div><div class="metric-value">{{ stats.resource_count }}</div></div></div><div class="section-head"><h2>{{ t('curriculum') }}</h2><p>{{ '按 18 周工程主线推进，可随时记录阶段分数。' if lang != 'en' else 'Follow the 18-week engineering path and record scores as you go.' }}</p></div><div class="course-grid">{% for item in lessons %}<a href="/course/{{ item.key }}" class="course-card"><div class="course-card-top"><span>Week {{ item.week }}</span><span class="badge badge-{{ item.progress.status }}">{{ t(item.progress.status) }}</span></div><h3>{{ item.title }}</h3><div class="course-progress-row"><span>{{ item.progress.percent }}%</span>{% if item.progress.score is not none %}<span>{{ t('score') }} {{ item.progress.score }}</span>{% endif %}</div><div class="progress-track thin"><div class="progress-bar" style="width:{{ item.progress.percent }}%"></div></div></a>{% endfor %}</div><div class="two-col"><section class="panel"><div class="panel-head"><h2>{{ t('recent_thoughts') }}</h2><a href="/thoughts">→</a></div>{% if thoughts %}<div class="feed">{% for item in thoughts %}<a class="feed-item" href="/thoughts/{{ item.id }}/edit"><div><strong>{{ item.title }}</strong><p>{{ item.content[:120] }}</p></div><span>{{ item.updated_at[:10] }}</span></a>{% endfor %}</div>{% else %}<div class="empty-state">{{ t('empty_thoughts') }}</div>{% endif %}</section><section class="panel"><div class="panel-head"><h2>{{ t('recent_resources') }}</h2><a href="/resources">→</a></div>{% if resources %}<div class="feed">{% for item in resources %}<a class="feed-item" href="{{ item.url }}" target="_blank" rel="noreferrer"><div><strong>{{ item.title }}</strong><p>{{ item.description[:120] }}</p></div><span>↗</span></a>{% endfor %}</div>{% else %}<div class="empty-state">{{ t('empty_resources') }}</div>{% endif %}</section></div>{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ t('dashboard') }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">LLM ENGINEERING</div>
+    <h1>{{ t('dashboard') }}</h1>
+    <p>{{ '把课程、进度、考试、思考和外部资料放在同一个本地工作区。' if lang != 'en' else 'Keep curriculum, progress, exams, thoughts, and external resources in one local workspace.' }}</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn btn-primary exam-head-cta" href="/exam-lab">✓ {{ 'Start Exam' if lang == 'en' else '开始考试' }}</a>
+    <a class="btn" href="/thoughts/new">＋ {{ t('add_thought') }}</a>
+    <a class="btn" href="/resources/new">＋ {{ t('add_resource') }}</a>
+  </div>
+</div>
+
+<div class="metric-grid">
+  <div class="metric-card metric-primary"><div class="metric-label">{{ t('overall_progress') }}</div><div class="metric-value">{{ overall }}%</div><div class="progress-track"><div class="progress-bar" style="width:{{ overall }}%"></div></div></div>
+  <div class="metric-card"><div class="metric-label">{{ t('completed_lessons') }}</div><div class="metric-value">{{ stats.completed }}<small>/ {{ lessons|length }}</small></div></div>
+  <div class="metric-card"><div class="metric-label">{{ t('thought_count') }}</div><div class="metric-value">{{ stats.thought_count }}</div></div>
+  <div class="metric-card"><div class="metric-label">{{ t('resource_count') }}</div><div class="metric-value">{{ stats.resource_count }}</div></div>
+</div>
+
+<section class="exam-quickstart" aria-labelledby="examQuickTitle">
+  <div class="exam-quickstart-head">
+    <div>
+      <div class="eyebrow">ASSESSMENT</div>
+      <h2 id="examQuickTitle">{{ 'Exam & Practice' if lang == 'en' else '考试与实训' }}</h2>
+      <p>{{ 'Start from the baseline assessment, then use weekly, adaptive, and stage exams to verify mastery.' if lang == 'en' else '从基线测试开始，再用周测、自适应测试和阶段考试持续验证掌握程度。' }}</p>
+    </div>
+    <a class="btn" href="/exam-lab">{{ 'Open Exam Center →' if lang == 'en' else '进入考试中心 →' }}</a>
+  </div>
+  <div class="exam-quick-grid">
+    <form class="exam-quick-card exam-quick-primary" method="post" action="/exams/week00/random-start">
+      <span class="exam-quick-icon">00</span>
+      <strong>{{ 'Baseline Assessment' if lang == 'en' else '基线测试' }}</strong>
+      <p>{{ 'Measure your starting point before the 18-week path.' if lang == 'en' else '正式学习前先测一次当前基础，确定起点。' }}</p>
+      <button class="btn btn-primary full" type="submit">{{ 'Start Baseline Test' if lang == 'en' else '开始基线测试' }}</button>
+    </form>
+    <a class="exam-quick-card" href="/exam-lab">
+      <span class="exam-quick-icon">W</span>
+      <strong>{{ 'Weekly Exams' if lang == 'en' else '每周周测' }}</strong>
+      <p>{{ 'Choose Week 0-18 and start a randomized system-graded exam.' if lang == 'en' else '选择 Week 0～18，开始随机组卷和系统自动评分。' }}</p>
+      <span class="exam-quick-link">{{ 'Choose a week →' if lang == 'en' else '选择周次 →' }}</span>
+    </a>
+    <a class="exam-quick-card" href="/adaptive-test">
+      <span class="exam-quick-icon">CAT</span>
+      <strong>{{ 'Adaptive Test' if lang == 'en' else '自适应测试' }}</strong>
+      <p>{{ 'The next question changes with your current mastery and answers.' if lang == 'en' else '系统根据当前掌握度与刚才的作答逐题调整下一题。' }}</p>
+      <span class="exam-quick-link">{{ 'Start adaptive test →' if lang == 'en' else '开始自适应测试 →' }}</span>
+    </a>
+    <a class="exam-quick-card" href="/stage-exams">
+      <span class="exam-quick-icon">S</span>
+      <strong>{{ 'Stage Exams' if lang == 'en' else '阶段考试' }}</strong>
+      <p>{{ 'Run cross-week comprehensive exams at key milestones.' if lang == 'en' else '在关键学习节点进行跨周综合考试，验证阶段能力。' }}</p>
+      <span class="exam-quick-link">{{ 'View stage exams →' if lang == 'en' else '查看阶段考试 →' }}</span>
+    </a>
+  </div>
+</section>
+
+<div class="section-head">
+  <h2>{{ t('curriculum') }}</h2>
+  <p>{{ '按 18 周工程主线推进；每周课程卡片都可以直接开始对应测试。' if lang != 'en' else 'Follow the 18-week engineering path; every course card can start its corresponding assessment directly.' }}</p>
+</div>
+<div class="course-grid">
+  {% for item in lessons %}
+  <article class="course-card">
+    <a class="course-card-main" href="/course/{{ item.key }}">
+      <div class="course-card-top"><span>Week {{ item.week }}</span><span class="badge badge-{{ item.progress.status }}">{{ t(item.progress.status) }}</span></div>
+      <h3>{{ item.title }}</h3>
+      <div class="course-progress-row"><span>{{ item.progress.percent }}%</span>{% if item.progress.score is not none %}<span>{{ t('score') }} {{ item.progress.score }}</span>{% endif %}</div>
+      <div class="progress-track thin"><div class="progress-bar" style="width:{{ item.progress.percent }}%"></div></div>
+    </a>
+    <div class="course-card-actions">
+      <a class="btn btn-sm" href="/course/{{ item.key }}">{{ 'Learn' if lang == 'en' else '学习' }}</a>
+      <form method="post" action="/exams/{{ item.key }}/random-start">
+        <button class="btn btn-primary btn-sm" type="submit">{% if item.week == 0 %}{{ 'Baseline Test' if lang == 'en' else '基线测试' }}{% else %}{{ 'Weekly Test' if lang == 'en' else '开始周测' }}{% endif %}</button>
+      </form>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+
+<div class="two-col">
+  <section class="panel"><div class="panel-head"><h2>{{ t('recent_thoughts') }}</h2><a href="/thoughts">→</a></div>{% if thoughts %}<div class="feed">{% for item in thoughts %}<a class="feed-item" href="/thoughts/{{ item.id }}/edit"><div><strong>{{ item.title }}</strong><p>{{ item.content[:120] }}</p></div><span>{{ item.updated_at[:10] }}</span></a>{% endfor %}</div>{% else %}<div class="empty-state">{{ t('empty_thoughts') }}</div>{% endif %}</section>
+  <section class="panel"><div class="panel-head"><h2>{{ t('recent_resources') }}</h2><a href="/resources">→</a></div>{% if resources %}<div class="feed">{% for item in resources %}<a class="feed-item" href="{{ item.url }}" target="_blank" rel="noreferrer"><div><strong>{{ item.title }}</strong><p>{{ item.description[:120] }}</p></div><span>↗</span></a>{% endfor %}</div>{% else %}<div class="empty-state">{{ t('empty_resources') }}</div>{% endif %}</section>
+</div>
+{% endblock %}
