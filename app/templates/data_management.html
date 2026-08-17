@@ -4,12 +4,13 @@
 <div class="adaptive-page">
   <section class="adaptive-hero">
     <div><div class="adaptive-eyebrow">LOCAL DATA</div><h1>{{ 'Data & Backup' if lang == 'en' else '数据与备份' }}</h1><p>{{ 'Export, restore and protect your local learning history.' if lang == 'en' else '导出、恢复并保护本地学习历史。' }}</p></div>
+    <a class="adaptive-btn" href="/diagnostics">{{ 'System diagnostics' if lang == 'en' else '系统诊断' }}</a>
   </section>
   {% if status %}<div class="exam-outcome passed">✓ {{ 'Restore completed' if lang == 'en' else '数据恢复完成' }} · {{ status }}</div>{% endif %}
   <div class="adaptive-grid two-col">
     <section class="adaptive-card">
       <div class="adaptive-card-head"><div><span class="section-kicker">EXPORT</span><h2>{{ 'Download full backup' if lang == 'en' else '下载完整备份' }}</h2></div></div>
-      <p>{{ 'Includes progress, notes, links, exams, drafts, coding attempts and adaptive sessions.' if lang == 'en' else '包含学习进度、思考、链接、考试、草稿、代码实训和自适应测试记录。' }}</p>
+      <p>{{ 'Includes progress, notes, links, exams, drafts, coding attempts, frozen exam questions and adaptive sessions.' if lang == 'en' else '包含学习进度、思考、链接、考试、草稿、代码实训、冻结试题和自适应测试记录。' }}</p>
       <a class="adaptive-btn primary" href="/backup.json">{{ 'Download JSON backup' if lang == 'en' else '下载 JSON 备份' }}</a>
     </section>
     <section class="adaptive-card">
