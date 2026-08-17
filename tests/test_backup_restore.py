@@ -43,3 +43,15 @@ def test_brief_envelope_format_is_still_accepted():
 def test_unknown_backup_table_is_rejected():
     with pytest.raises(BackupError):
         parse_backup_json('{"users": [{"admin": true}]}')
+
+
+def test_unsafe_resource_url_in_backup_is_rejected():
+    with pytest.raises(BackupError):
+        parse_backup_json('{"resources":[{"title":"bad","url":"javascript:alert(1)"}]}')
+
+
+def test_invalid_progress_and_adaptive_limits_are_rejected():
+    with pytest.raises(BackupError):
+        parse_backup_json('{"lesson_progress":[{"lesson_key":"week01","percent":101}]}')
+    with pytest.raises(BackupError):
+        parse_backup_json('{"adaptive_sessions":[{"max_items":10000}]}')
