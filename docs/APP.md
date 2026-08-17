@@ -1,111 +1,30 @@
 # 本地学习应用
 
-仓库除了 Markdown 课程，还内置一个本地优先的轻量学习与考试应用。
+这是一个面向个人长期学习的 local-first 大模型工程学习与考试应用。稳定运行入口为 `app.current:app`。
 
-## 功能
+完整版本演进与实现细节见：[V5：逐题自适应测试与长期运行](V5.md)。
 
-- 中英文课程切换，学习进度跨语言共享。
-- 课程阅读进度记录；阅读进度最多只能手工记录到 99%。
-- 独立考试中心：开始考试、正式作答、提交、系统判分、成绩单、重考。
-- 课程成绩**禁止手工录入**，只有考试系统可以写入。
-- 达到试卷及格线后，系统自动将课程标为 100% / 已完成；未通过则保持学习中。
-- 单选、多选、判断、填空采用确定性规则自动判分。
-- 简答题按照知识点 Rubric 自动给部分分，并显示命中与缺失知识点。
-- 随机组卷：按难度平衡抽题，并保存每次 Attempt 的试卷快照。
-- 题目包含 Easy / Medium / Hard 难度与知识点标签。
-- 错题本：仅显示最新一次仍然答错的题目；后续答对会自动移出。
-- 错题专项复习：从当前未掌握错题直接生成一套练习卷。
-- 成绩趋势：考试次数、平均分、最高分、通过率和最近成绩走势。
-- 阶段考试：将 18 周路线划分为 5 个阶段，跨 Week 综合抽题。
-- 题库概览：展示每周题量、题型、难度与知识点覆盖。
-- Markdown 思考笔记，可关联任意课程并添加标签。
-- 外部学习链接库，可保存论文、教程、视频、博客与 GitHub 项目。
-- SQLite 本地存储，无需额外数据库。
-- JSON 备份包含课程进度、思考、链接、考试记录、答题明细与随机试卷快照。
-- Python 直接启动；支持 Docker / Docker Compose。
+## 当前能力
 
-## V2 考试流程
-
-```text
-学习课程
-  ↓
-考试中心 / 课程右侧考试卡片
-  ↓
-随机抽题 + 难度平衡
-  ↓
-保存本次试卷快照
-  ↓
-在线作答
-  ↓
-提交
-  ↓
-系统自动判分
-  ↓
-成绩单 + 逐题反馈 + 知识点反馈
-  ↓
-通过 → 课程 100% / 已完成
-未通过 → 保持学习中，可重新考试
-```
-
-Week 0～2 保留原有混合题型题库；Week 3～18 已在原 Checkpoint 基础上新增单选、多选和简答题，使随机周测具备 Easy / Medium / Hard 三档题目。后续仍可继续扩充题库，不影响历史试卷，因为每一次考试都会保存当次试卷快照。
-
-## 随机组卷
-
-周测默认从该 Week 的题库中抽题，并尽量覆盖：
-
-- Easy：基础概念、判断、填空；
-- Medium：单选、多选、场景判断；
-- Hard：简答与跨概念解释。
-
-系统把本次抽到的题目顺序和题目 ID 写入 `exam_attempt_questions`。即使之后题库新增题目，旧成绩单仍可以基于原 Attempt 还原。
-
-## 阶段考试
-
-当前划分为：
-
-1. Week 0～4：基础原理；
-2. Week 5～8：LLM 应用与基础 RAG；
-3. Week 9～12：高级 RAG 与 Agent；
-4. Week 13～16：平台、治理与部署；
-5. Week 17～18：高级与毕业综合。
-
-阶段考试会从多个 Week 的题库中抽题，而不是重复某一周的固定试卷。
-
-## 错题本
-
-错题本采用“最新状态”而不是“历史上答错过就永远保留”的逻辑：
-
-- 如果某题最近一次仍答错，则出现在错题本；
-- 如果后续专项复习或重考时答对，则自动从未掌握列表移除；
-- 同时记录历史错误次数，用于判断薄弱知识点。
-
-## 评分规则
-
-### 客观题
-
-单选、多选、判断、填空由程序按标准答案确定性评分，不调用大模型，因此相同答案会得到相同分数。
-
-### 简答题
-
-简答题按照预设知识点 Rubric 自动评分。例如一道题要求覆盖 4 个概念点，回答命中 3 个，则按覆盖比例获得部分分。成绩单会显示：
-
-- 命中的知识点；
-- 缺失的知识点；
-- 本题实际得分 / 满分。
-
-## 代码题执行边界
-
-仓库新增 `app/code_runner.py`，为后续 Python/RAG/Agent 编程题自动评分预留统一 `CodeRunner` 接口。
-
-当前默认实现是 `DisabledCodeRunner`：**不会直接在宿主机执行学习者提交的任意代码**。后续启用代码题时，应实现容器或其他隔离沙箱执行器，并基于 pytest/测试用例通过率评分。
-
-## 界面设计参考
-
-界面定位为“学习工作区”，而不是传统后台。设计语言参考 Memos 的快速记录、AFFiNE 的知识工作区层级，以及 Tabler 的导航和卡片模式；实现使用原创 CSS，不直接复制第三方页面。
+- Week 0～18 中英文课程阅读与进度记录；
+- 系统评分考试，禁止手工填写考试成绩；
+- 随机周测、阶段考试、错题复习、计时、自动保存、超时交卷；
+- 单选、多选、判断、填空确定性评分；简答题按严格 Rubric 自动评分；
+- 约 190+ 道题，并有题库质量门禁；
+- 历史考试完整冻结试题内容；
+- Python 代码实训，可选 Docker Sandbox + pytest 自动评分；
+- 知识点掌握度、六维能力画像、薄弱项推荐；
+- 逐题自适应测试（CAT），每答一题再选择下一题；
+- 进行中的 CAT 可恢复或放弃；
+- Markdown 思考笔记、标签、课程关联；
+- 外部资料链接库；
+- 全局搜索课程、思考和外链；
+- SQLite 本地存储、自动滚动备份、完整 JSON 导出/恢复；
+- 系统诊断与本地 Web 安全硬化。
 
 ## Python 启动
 
-建议 Python 3.11+：
+建议 Python 3.11 或 3.12，优先使用已经过 CI 验证的依赖固定版本：
 
 ```bash
 python -m venv .venv
@@ -115,7 +34,7 @@ Windows PowerShell：
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements.lock.txt
 python run.py
 ```
 
@@ -123,13 +42,19 @@ Linux / macOS：
 
 ```bash
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.lock.txt
 python run.py
 ```
 
-打开：`http://127.0.0.1:8765`
+打开：`http://127.0.0.1:8765`。
 
-Python 默认只监听本机 `127.0.0.1`。
+Python 模式数据默认保存在：
+
+```text
+data/learning.db
+```
+
+`data/*` 已被 Git 忽略，不会正常提交到仓库。
 
 ## Docker Compose
 
@@ -137,36 +62,112 @@ Python 默认只监听本机 `127.0.0.1`。
 docker compose up -d --build
 ```
 
-打开：`http://127.0.0.1:8765`
+打开：`http://127.0.0.1:8765`。
 
-停止：
+Docker 默认使用 named volume：
+
+```text
+llm-engineering-learning-data
+```
+
+数据库位于容器 `/data/learning.db`。named volume 用于避免 Linux、macOS、Windows 上 bind mount 的 UID/权限差异。
+
+普通停止不会删除数据：
 
 ```bash
 docker compose down
 ```
 
-学习数据保存在 `data/learning.db`。Compose 将 `./data` 映射到容器 `/data`，重新构建镜像不会删除学习记录。
+只有显式执行下面命令才会删除 Docker volume：
 
-## 数据结构
+```bash
+docker compose down -v
+```
 
-- `lesson_progress`：课程状态、阅读/完成百分比、考试系统产生的最佳成绩。
-- `exam_attempts`：每一次考试的开始时间、提交时间、总分、百分比、及格线和通过状态。
-- `exam_answers`：每一道题的原始答案、得分、满分、判定与 Rubric 反馈。
-- `exam_v2_meta`：随机周测、阶段考试、错题复习等 Attempt 的类型、范围和随机种子。
-- `exam_attempt_questions`：每次随机试卷实际抽到的题目、顺序、难度和知识点快照。
-- `thoughts`：个人思考、Markdown 内容、标签、关联课程。
-- `resources`：外部 URL、说明、标签、关联课程。
+迁移数据时优先使用应用内“数据与备份”页面，而不是直接复制 SQLite 文件。
 
-## 备份
+## 主要页面
 
-左侧点击“导出备份”，或者访问：`http://127.0.0.1:8765/backup.json`
+| 页面 | 路径 |
+|---|---|
+| 学习总览 | `/` |
+| 自适应学习画像 | `/adaptive` |
+| 逐题自适应测试 | `/adaptive-test` |
+| 考试中心 | `/exam-lab` |
+| 代码实训 | `/coding-labs` |
+| 错题本 | `/mistakes` |
+| 成绩趋势 | `/exam-history` |
+| 思考笔记 | `/thoughts` |
+| 外部资料 | `/resources` |
+| 全局搜索 | `/search` |
+| 数据与备份 | `/data-management` |
+| 系统诊断 | `/diagnostics` |
 
-备份包含考试 Attempt、答题明细、V2 元数据和随机试卷快照。
+## 数据保护
 
-## 健康检查
+“数据与备份”支持：
 
-`GET /health`
+- 下载完整 JSON；
+- 备份格式校验；
+- 恢复前显式确认；
+- 恢复前自动生成安全快照；
+- 事务恢复和失败回滚；
+- 旧版备份兼容；
+- 外链协议和关键字段安全校验。
+
+启动时默认还会生成滚动自动备份：
+
+```text
+LLM_AUTO_BACKUP=1
+LLM_AUTO_BACKUP_HOURS=24
+LLM_AUTO_BACKUP_KEEP=10
+```
+
+## 代码实训
+
+任意学习者代码默认不会执行。启用 Docker 代码沙箱前先构建：
+
+```bash
+docker build -t llm-learning-sandbox:py312 sandbox
+```
+
+然后设置：
+
+```text
+LLM_CODE_RUNNER=docker
+LLM_CODE_RUNNER_IMAGE=llm-learning-sandbox:py312
+```
+
+代码沙箱使用无网络、资源限制、非 root、只读工作区、能力移除等边界，并由 CI 真实执行 Smoke Test。
 
 ## 安全边界
 
-当前版本定位为个人本地学习工具，因此默认没有登录系统。若要把 Docker 端口暴露给局域网或公网，请增加认证和反向代理。用户 Markdown 渲染会进行 HTML 清洗，外部链接仅允许 `http://` 和 `https://`。代码题执行默认关闭，未来启用时必须使用隔离执行环境。
+本项目默认是单用户本地应用：
+
+- Python 默认监听 `127.0.0.1`；
+- Docker 仅映射 `127.0.0.1:8765`；
+- Trusted Host；
+- 跨站写请求拦截；
+- Markdown HTML 清洗；
+- 外链只允许 HTTP(S)；
+- 安全响应头；
+- 敏感 JSON 禁止缓存。
+
+若需要放到局域网或公网，应额外增加认证和反向代理；那属于多用户/网络部署范围，不是当前本地单用户默认模式。
+
+## 健康与诊断
+
+基础健康检查：
+
+```text
+GET /health
+```
+
+完整诊断：
+
+```text
+GET /diagnostics
+GET /api/diagnostics
+```
+
+诊断会检查 SQLite integrity、WAL、busy timeout、题库质量、代码 Runner 和备份状态。
