@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import secrets
 from collections import defaultdict
@@ -28,6 +29,7 @@ from .exam_v2 import (
     knowledge_for,
     templates,
 )
+from .question_snapshot import _question_from_dict, _question_to_dict
 
 router = APIRouter()
 
@@ -55,6 +57,7 @@ def init_tables() -> None:
                 question_id TEXT NOT NULL,
                 difficulty TEXT NOT NULL,
                 knowledge_json TEXT NOT NULL DEFAULT '[]',
+                question_json TEXT,
                 answer_json TEXT,
                 score_percent REAL,
                 created_at TEXT NOT NULL,
@@ -66,6 +69,9 @@ def init_tables() -> None:
                 ON adaptive_session_items(session_id, seq);
             """
         )
+        columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(adaptive_session_items)").fetchall()}
+        if "question_json" not in columns:
+            conn.execute("ALTER TABLE adaptive_session_items ADD COLUMN question_json TEXT")
 
 
 init_tables()
@@ -76,6 +82,14 @@ def _loads(value: str | None, fallback: Any) -> Any:
         return json.loads(value or "")
     except (TypeError, json.JSONDecodeError):
         return fallback
+
+
+def _adaptive_max_items() -> int:
+    try:
+        value = int(os.getenv("LLM_ADAPTIVE_MAX_ITEMS", "12"))
+    except ValueError:
+        value = 12
+    return max(6, min(value, 30))
 
 
 def _session(session_id: int) -> dict[str, Any] | None:
@@ -96,8 +110,32 @@ def _items(session_id: int) -> list[dict[str, Any]]:
         item = dict(raw)
         item["knowledge"] = _loads(item.pop("knowledge_json"), [])
         item["answer"] = _loads(item.get("answer_json"), None) if item.get("answer_json") is not None else None
-        indexed = QUESTION_INDEX.get(item["question_id"])
-        item["question"] = indexed[1] if indexed else None
+        question = None
+        if item.get("question_json"):
+            try:
+                question = _question_from_dict(json.loads(item["question_json"]))
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+                question = None
+        if question is None:
+            indexed = QUESTION_INDEX.get(item["question_id"])
+            question = indexed[1] if indexed else None
+        item["question"] = question
+        result.append(item)
+    return result
+
+
+def _recent_sessions(limit: int = 8) -> list[dict[str, Any]]:
+    with db.connect() as conn:
+        rows = conn.execute(
+            """SELECT s.*,
+                      (SELECT COUNT(*) FROM adaptive_session_items i WHERE i.session_id=s.id AND i.answer_json IS NOT NULL) AS answered
+               FROM adaptive_sessions s ORDER BY s.id DESC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+    result: list[dict[str, Any]] = []
+    for raw in rows:
+        item = dict(raw)
+        item["target_tags"] = _loads(item.pop("target_tags_json"), [])
         result.append(item)
     return result
 
@@ -205,9 +243,15 @@ def _ensure_pending(session: dict[str, Any]) -> dict[str, Any] | None:
     knowledge = list(knowledge_for(lesson_key, question))
     with db.connect() as conn:
         conn.execute(
-            """INSERT INTO adaptive_session_items(session_id,seq,lesson_key,question_id,difficulty,knowledge_json,created_at)
-               VALUES(?,?,?,?,?,?,?)""",
-            (session["id"], seq, lesson_key, question.id, difficulty_for(question), json.dumps(knowledge, ensure_ascii=False), now_iso()),
+            """INSERT INTO adaptive_session_items(
+                   session_id,seq,lesson_key,question_id,difficulty,knowledge_json,question_json,created_at
+               ) VALUES(?,?,?,?,?,?,?,?)""",
+            (
+                session["id"], seq, lesson_key, question.id, difficulty_for(question),
+                json.dumps(knowledge, ensure_ascii=False),
+                json.dumps(_question_to_dict(question), ensure_ascii=False),
+                now_iso(),
+            ),
         )
     return _items(int(session["id"]))[-1]
 
@@ -239,7 +283,7 @@ def adaptive_test_home(request: Request):
     lang = _lang(request)
     profile = mastery_profile()
     c = _nav(request, lang)
-    c.update({"targets": _default_targets(profile), "profile": profile})
+    c.update({"targets": _default_targets(profile), "profile": profile, "recent_sessions": _recent_sessions(), "max_items": _adaptive_max_items()})
     return templates.TemplateResponse(request=request, name="adaptive_test_home.html", context=c)
 
 
@@ -254,10 +298,21 @@ def start_adaptive_test(request: Request):
         cur = conn.execute(
             """INSERT INTO adaptive_sessions(language,status,target_tags_json,max_items,seed,started_at)
                VALUES(?,?,?,?,?,?)""",
-            (lang, "started", json.dumps(targets, ensure_ascii=False), 12, seed, now_iso()),
+            (lang, "started", json.dumps(targets, ensure_ascii=False), _adaptive_max_items(), seed, now_iso()),
         )
         session_id = int(cur.lastrowid)
     return RedirectResponse(f"/adaptive-test/{session_id}", status_code=303)
+
+
+@router.post("/adaptive-test/{session_id}/abandon")
+def abandon_adaptive_test(session_id: int):
+    session = _session(session_id)
+    if not session:
+        raise HTTPException(404)
+    if session["status"] == "started":
+        with db.connect() as conn:
+            conn.execute("UPDATE adaptive_sessions SET status='abandoned',completed_at=? WHERE id=?", (now_iso(), session_id))
+    return RedirectResponse("/adaptive-test", status_code=303)
 
 
 @router.get("/adaptive-test/{session_id}", response_class=HTMLResponse)
@@ -267,6 +322,8 @@ def adaptive_test_take(request: Request, session_id: int):
         raise HTTPException(404)
     if session["status"] == "completed" and session.get("exam_attempt_id"):
         return RedirectResponse(f"/exam-v2/attempt/{session['exam_attempt_id']}/result", status_code=303)
+    if session["status"] != "started":
+        return RedirectResponse("/adaptive-test", status_code=303)
     pending = _ensure_pending(session)
     if not pending:
         attempt_id = _finish_session(session)
