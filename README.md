@@ -2,7 +2,7 @@
 
 [中文](#中文) · [English](#english)
 
-> 18 周 LLM / RAG / Agent 工程学习路线 + 本地学习应用。课程、系统考试、进度、个人思考和外部资料统一放在一个 local-first 工作区中。
+> 18 周 LLM / RAG / Agent 工程学习路线 + 本地学习、考试、代码实训与自适应能力评测应用。
 
 ## Local Learning App / 本地学习应用
 
@@ -10,23 +10,24 @@
 
 - 中英文课程切换，进度共享。
 - 阅读进度记录；手工进度最高 99%。
-- 独立考试中心：开始考试 → 作答 → 提交 → 系统评分 → 成绩单 → 重考。
+- 系统考试：随机组卷、倒计时、自动保存、超时交卷、系统评分、成绩单、重考。
 - **禁止手工录入考试成绩**；只有考试系统可以写入课程成绩。
-- 通过考试后自动将课程标为 100% / 已完成；未通过保持学习中。
 - 单选、多选、判断、填空确定性自动判分；简答题按知识点 Rubric 给部分分。
-- **随机组卷**：按难度平衡从题库抽题，并保存本次试卷快照。
-- **题目元数据**：Easy / Medium / Hard 难度与知识点标签。
-- **错题本**：只保留最新一次仍然答错的题目，可一键生成错题专项复习。
-- **成绩趋势**：统计考试次数、平均分、最高分、通过率和最近成绩走势。
-- **阶段考试**：按 18 周路线划分为 5 个阶段，跨 Week 综合抽题。
-- **题库概览**：查看每周题量、题型、难度和知识点覆盖。
-- 保存每次考试 Attempt、原始答案、逐题得分、总分、最高成绩、通过状态和试卷快照。
-- 为后续代码题预留 `CodeRunner` 执行边界；默认安全关闭，不会直接执行任意学习者代码。
+- Easy / Medium / Hard 难度与知识点标签。
+- 错题本与错题专项复习。
+- 阶段考试与成绩趋势。
+- Python 代码实训：可选 Docker Sandbox + pytest 自动评分；默认安全关闭。
+- **V4 自适应学习**：从真实考试与代码实训结果自动计算知识点掌握度。
+- **六维能力雷达**：基础原理、LLM 应用、RAG、Agent、平台治理、进阶工程。
+- **薄弱知识点识别**：综合得分、证据可信度和历史低分次数生成优先级。
+- **自适应复习卷**：按弱项从题库自动抽取 Easy / Medium / Hard 混合题。
+- **课程复习推荐**：直接定位到对应 Week 课程。
 - Markdown 个人思考、标签、课程关联。
 - 外部链接库：论文、教程、视频、博客、GitHub 项目等。
 - SQLite 本地持久化，无需额外数据库。
-- JSON 一键备份，包含考试历史、答题明细和随机试卷快照。
+- JSON 一键备份。
 - Python 直接启动和 Docker Compose 启动。
+- GitHub Actions 自动运行应用测试和 Docker Sandbox Smoke Test。
 
 ### Python
 
@@ -48,12 +49,16 @@ docker compose up -d --build
 
 打开：`http://127.0.0.1:8765`
 
-学习数据保存在 `data/learning.db`。Docker Compose 默认也只映射到宿主机 `127.0.0.1`。
+学习数据保存在 `data/learning.db`。Docker Compose 默认只映射到宿主机 `127.0.0.1`。
 
 详细说明：
 
 - [中文应用文档](docs/APP.md)
 - [English App Guide](docs/APP.en.md)
+- [V3：计时考试与代码实训](docs/V3.md)
+- [V3: Timed Exams & Coding Labs](docs/V3.en.md)
+- [V4：自适应学习与能力画像](docs/V4.md)
+- [V4: Adaptive Learning & Mastery Profile](docs/V4.en.md)
 
 ---
 
@@ -103,7 +108,7 @@ Fine-tuning / LoRA
 Coding Agent
 ```
 
-建议周期：18 周；每周 6～10 小时；主语言 Python。完成标准不是“看完教程”，而是：**能解释 + 能实现 + 能排错 + 能设计，并通过对应系统考试**。
+建议周期：18 周；每周 6～10 小时；主语言 Python。完成标准不是“看完教程”，而是：**能解释 + 能实现 + 能排错 + 能设计，并通过对应系统考试与实训**。
 
 ---
 
@@ -111,7 +116,7 @@ Coding Agent
 
 A systematic engineering-oriented curriculum for LLMs, RAG, agents, evaluation, deployment, and AI coding systems.
 
-The local app includes system-graded randomized weekly exams, mistake review, score history, stage exams, and question-bank analytics. Scores cannot be self-entered; passing an exam is what marks a lesson complete.
+The local app includes system-graded randomized exams, mistake review, timed autosave, coding labs, stage exams, mastery analytics, and adaptive review generation. Scores and knowledge mastery cannot be self-entered.
 
 ## English Entry Points
 
@@ -121,7 +126,7 @@ The local app includes system-graded randomized weekly exams, mistake review, sc
 - [Week 1: Math & Machine Learning Foundations](docs/week01-ml-foundations.en.md)
 - [Week 2: Neural Networks & PyTorch](docs/week02-neural-network-pytorch.en.md)
 
-Recommended duration: 18 weeks, 6–10 hours per week, primarily using Python. Completion means being able to **explain, implement, debug, design, and pass the corresponding system-graded assessment**.
+Recommended duration: 18 weeks, 6–10 hours per week, primarily using Python. Completion means being able to **explain, implement, debug, design, and pass the corresponding system-graded assessments and coding labs**.
 
 ---
 
