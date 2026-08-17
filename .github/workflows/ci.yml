@@ -25,3 +25,20 @@ jobs:
           PYTHONPATH: .
           LLM_CODE_RUNNER: disabled
         run: pytest -q
+
+  sandbox-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build sandbox image
+        run: docker build -t llm-learning-sandbox:py312 sandbox
+      - name: Run sandbox grading smoke test
+        env:
+          PYTHONPATH: .
+          LLM_CODE_RUNNER: docker
+          LLM_CODE_RUNNER_IMAGE: llm-learning-sandbox:py312
+        run: python scripts/sandbox_smoke.py
