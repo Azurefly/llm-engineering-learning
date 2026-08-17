@@ -3,6 +3,9 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
-data/*.db
-data/*.db-shm
-data/*.db-wal
+
+# All files under data/ are private local learning state: SQLite, WAL files,
+# restore snapshots, notes/resources embedded in backups, etc. Keep only the
+# empty directory marker in Git.
+data/*
+!data/.gitkeep
