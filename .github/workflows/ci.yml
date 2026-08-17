@@ -18,8 +18,9 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+          cache-dependency-path: requirements-dev.lock.txt
+      - name: Install verified dependencies
+        run: pip install -r requirements-dev.lock.txt
       - name: Run tests
         env:
           PYTHONPATH: .
