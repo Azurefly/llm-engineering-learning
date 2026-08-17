@@ -14,11 +14,18 @@
 - **禁止手工录入考试成绩**；只有考试系统可以写入课程成绩。
 - 通过考试后自动将课程标为 100% / 已完成；未通过保持学习中。
 - 单选、多选、判断、填空确定性自动判分；简答题按知识点 Rubric 给部分分。
-- 保存每次考试 Attempt、原始答案、逐题得分、总分、最高成绩和通过状态。
+- **随机组卷**：按难度平衡从题库抽题，并保存本次试卷快照。
+- **题目元数据**：Easy / Medium / Hard 难度与知识点标签。
+- **错题本**：只保留最新一次仍然答错的题目，可一键生成错题专项复习。
+- **成绩趋势**：统计考试次数、平均分、最高分、通过率和最近成绩走势。
+- **阶段考试**：按 18 周路线划分为 5 个阶段，跨 Week 综合抽题。
+- **题库概览**：查看每周题量、题型、难度和知识点覆盖。
+- 保存每次考试 Attempt、原始答案、逐题得分、总分、最高成绩、通过状态和试卷快照。
+- 为后续代码题预留 `CodeRunner` 执行边界；默认安全关闭，不会直接执行任意学习者代码。
 - Markdown 个人思考、标签、课程关联。
 - 外部链接库：论文、教程、视频、博客、GitHub 项目等。
 - SQLite 本地持久化，无需额外数据库。
-- JSON 一键备份，包含考试历史与答题明细。
+- JSON 一键备份，包含考试历史、答题明细和随机试卷快照。
 - Python 直接启动和 Docker Compose 启动。
 
 ### Python
@@ -104,7 +111,7 @@ Coding Agent
 
 A systematic engineering-oriented curriculum for LLMs, RAG, agents, evaluation, deployment, and AI coding systems.
 
-The local app includes a system-graded exam flow. Scores cannot be self-entered; passing an exam is what marks a lesson complete.
+The local app includes system-graded randomized weekly exams, mistake review, score history, stage exams, and question-bank analytics. Scores cannot be self-entered; passing an exam is what marks a lesson complete.
 
 ## English Entry Points
 
