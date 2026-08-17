@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Adaptive Test' if lang == 'en' else '自适应测试' }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="adaptive-test-page">
+  <section class="adaptive-test-hero">
+    <div>
+      <span class="section-kicker">V5 · COMPUTERIZED ADAPTIVE TESTING</span>
+      <h1>{{ 'Sequential Adaptive Assessment' if lang == 'en' else '逐题自适应能力测试' }}</h1>
+      <p>{{ 'The next question is selected after every answer using mastery, difficulty and question exposure.' if lang == 'en' else '每答完一道题，系统都会结合掌握度、题目难度与历史曝光次数重新选择下一题。' }}</p>
+    </div>
+    <form method="post" action="/adaptive-test/start"><button class="adaptive-btn primary big" type="submit">{{ 'Start adaptive test' if lang == 'en' else '开始自适应测试' }}</button></form>
+  </section>
+
+  <div class="adaptive-grid two-col">
+    <section class="adaptive-card">
+      <div class="adaptive-card-head"><div><span class="section-kicker">TARGETS</span><h2>{{ 'Current target knowledge' if lang == 'en' else '当前优先测评知识点' }}</h2></div></div>
+      {% if targets %}<div class="target-cloud">{% for tag in targets %}<span>{{ tag }}</span>{% endfor %}</div>{% else %}<div class="adaptive-empty"><p>{{ 'No targets are available yet.' if lang == 'en' else '当前暂无可测评知识点。' }}</p></div>{% endif %}
+    </section>
+    <section class="adaptive-card">
+      <div class="adaptive-card-head"><div><span class="section-kicker">HOW IT WORKS</span><h2>{{ 'Selection policy' if lang == 'en' else '选题策略' }}</h2></div></div>
+      <ol class="adaptive-steps">
+        <li>{{ 'Weak knowledge receives higher priority.' if lang == 'en' else '薄弱知识点优先级更高。' }}</li>
+        <li>{{ 'Low mastery starts easier; high mastery moves toward harder items.' if lang == 'en' else '低掌握度优先简单题，高掌握度逐步提高难度。' }}</li>
+        <li>{{ 'Questions seen many times are automatically down-weighted.' if lang == 'en' else '历史出现次数过多的题目自动降权。' }}</li>
+        <li>{{ 'Each response immediately influences the following item.' if lang == 'en' else '本次回答结果会立即影响下一题。' }}</li>
+      </ol>
+    </section>
+  </div>
+</div>
+{% endblock %}
