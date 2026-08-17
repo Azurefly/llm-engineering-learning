@@ -121,8 +121,23 @@ class DockerSandboxCodeRunner:
             return CodeRunResult(False, False, 0.0, None, "", "", "Docker CLI was not found.")
 
         workspace.mkdir(parents=True, exist_ok=True)
-        (workspace / request.filename).write_text(request.source_code, encoding="utf-8")
-        (workspace / request.test_filename).write_text(request.tests_source, encoding="utf-8")
+        source_path = workspace / request.filename
+        test_path = workspace / request.test_filename
+        source_path.write_text(request.source_code, encoding="utf-8")
+        test_path.write_text(request.tests_source, encoding="utf-8")
+
+        # TemporaryDirectory is commonly created with mode 0700. The sandbox runs
+        # as an unprivileged UID, so grant read/execute access to the directory and
+        # read access to the two files while keeping the container mount read-only.
+        try:
+            workspace.chmod(0o755)
+            source_path.chmod(0o644)
+            test_path.chmod(0o644)
+        except OSError:
+            # Windows ACLs may ignore POSIX chmod. Docker Desktop still handles the
+            # bind mount; if it cannot, the subprocess result will report the error.
+            pass
+
         command = self.build_command(workspace, request.test_filename)
         try:
             completed = subprocess.run(
