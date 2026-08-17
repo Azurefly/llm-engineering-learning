@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Question Bank' if lang == 'en' else '题库概览' }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><div class="eyebrow">QUESTION BANK</div><h1>{{ 'Question Bank' if lang == 'en' else '题库概览' }}</h1><p>{{ 'Question counts, difficulty mix and knowledge coverage by week.' if lang == 'en' else '查看每周题量、难度构成和知识点覆盖。' }}</p></div><a class="btn" href="/exam-lab">{{ 'Exam Center' if lang == 'en' else '考试中心' }}</a></div>
+<div class="bank-grid">{% for item in bank_items %}<section class="bank-card"><div class="question-head"><span>WEEK {{ item.lesson.week }}</span><strong>{{ item.count }} {{ 'questions' if lang == 'en' else '题' }}</strong></div><h3>{{ item.title }}</h3><div class="difficulty-counts"><span class="difficulty difficulty-easy">EASY {{ item.difficulty.easy }}</span><span class="difficulty difficulty-medium">MEDIUM {{ item.difficulty.medium }}</span><span class="difficulty difficulty-hard">HARD {{ item.difficulty.hard }}</span></div><div class="knowledge-row">{% for k in item.knowledge %}<span class="tag">{{ k }}</span>{% endfor %}</div><div class="kind-row">{% for kind,count in item.kinds.items() %}<span>{{ kind }} {{ count }}</span>{% endfor %}</div></section>{% endfor %}</div>
+{% endblock %}
