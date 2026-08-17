@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from .db import Database
 
@@ -49,6 +50,33 @@ def export_all_json(db: Database) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
+def _validate_rows(table: str, rows: list[dict[str, Any]]) -> None:
+    if table == "resources":
+        for index, row in enumerate(rows, 1):
+            url = str(row.get("url") or "").strip()
+            parsed = urlparse(url)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise BackupError(f"resources row {index} contains an unsafe URL")
+    elif table == "lesson_progress":
+        for index, row in enumerate(rows, 1):
+            if "percent" in row:
+                try:
+                    percent = int(row["percent"])
+                except (TypeError, ValueError) as exc:
+                    raise BackupError(f"lesson_progress row {index} has invalid percent") from exc
+                if percent < 0 or percent > 100:
+                    raise BackupError(f"lesson_progress row {index} percent must be between 0 and 100")
+    elif table == "adaptive_sessions":
+        for index, row in enumerate(rows, 1):
+            if "max_items" in row:
+                try:
+                    max_items = int(row["max_items"])
+                except (TypeError, ValueError) as exc:
+                    raise BackupError(f"adaptive_sessions row {index} has invalid max_items") from exc
+                if max_items < 1 or max_items > 100:
+                    raise BackupError(f"adaptive_sessions row {index} max_items is outside the safe range")
+
+
 def parse_backup_json(text: str) -> dict[str, list[dict[str, Any]]]:
     try:
         payload = json.loads(text)
@@ -82,6 +110,7 @@ def parse_backup_json(text: str) -> dict[str, list[dict[str, Any]]]:
     for table, rows in tables.items():
         if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
             raise BackupError(f"Table {table} must contain a list of objects")
+        _validate_rows(table, rows)
         normalized[table] = rows
     return normalized
 
