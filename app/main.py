@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from .backup import export_all_json
 from .course import LESSONS, LESSON_MAP, load_lesson_markdown, title_for
 from .db import Database
 from .exam_system import exam_summary, router as exam_router
@@ -146,7 +147,7 @@ def delete_resource(item_id:int): db.delete_resource(item_id); return RedirectRe
 
 
 @app.get("/backup.json")
-def export_backup(): return Response(db.export_json(),media_type="application/json; charset=utf-8",headers={"Content-Disposition":"attachment; filename=llm-learning-backup.json"})
+def export_backup(): return Response(export_all_json(db),media_type="application/json; charset=utf-8",headers={"Content-Disposition":"attachment; filename=llm-learning-backup.json"})
 
 
 @app.get("/health")
