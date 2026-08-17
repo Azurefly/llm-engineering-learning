@@ -2,18 +2,23 @@
 
 [中文](#中文) · [English](#english)
 
-> 18 周 LLM / RAG / Agent 工程学习路线 + 本地学习应用。课程、进度、个人思考和外部资料统一放在一个 local-first 工作区中。
+> 18 周 LLM / RAG / Agent 工程学习路线 + 本地学习应用。课程、系统考试、进度、个人思考和外部资料统一放在一个 local-first 工作区中。
 
 ## Local Learning App / 本地学习应用
 
 应用支持：
 
 - 中英文课程切换，进度共享。
-- 0～100% 学习进度与每周测试分数。
+- 阅读进度记录；手工进度最高 99%。
+- 独立考试中心：开始考试 → 作答 → 提交 → 系统评分 → 成绩单 → 重考。
+- **禁止手工录入考试成绩**；只有考试系统可以写入课程成绩。
+- 通过考试后自动将课程标为 100% / 已完成；未通过保持学习中。
+- 单选、多选、判断、填空确定性自动判分；简答题按知识点 Rubric 给部分分。
+- 保存每次考试 Attempt、原始答案、逐题得分、总分、最高成绩和通过状态。
 - Markdown 个人思考、标签、课程关联。
 - 外部链接库：论文、教程、视频、博客、GitHub 项目等。
 - SQLite 本地持久化，无需额外数据库。
-- JSON 一键备份。
+- JSON 一键备份，包含考试历史与答题明细。
 - Python 直接启动和 Docker Compose 启动。
 
 ### Python
@@ -91,13 +96,15 @@ Fine-tuning / LoRA
 Coding Agent
 ```
 
-建议周期：18 周；每周 6～10 小时；主语言 Python。完成标准不是“看完教程”，而是：**能解释 + 能实现 + 能排错 + 能设计**。
+建议周期：18 周；每周 6～10 小时；主语言 Python。完成标准不是“看完教程”，而是：**能解释 + 能实现 + 能排错 + 能设计，并通过对应系统考试**。
 
 ---
 
 # English
 
 A systematic engineering-oriented curriculum for LLMs, RAG, agents, evaluation, deployment, and AI coding systems.
+
+The local app includes a system-graded exam flow. Scores cannot be self-entered; passing an exam is what marks a lesson complete.
 
 ## English Entry Points
 
@@ -107,7 +114,7 @@ A systematic engineering-oriented curriculum for LLMs, RAG, agents, evaluation, 
 - [Week 1: Math & Machine Learning Foundations](docs/week01-ml-foundations.en.md)
 - [Week 2: Neural Networks & PyTorch](docs/week02-neural-network-pytorch.en.md)
 
-Recommended duration: 18 weeks, 6–10 hours per week, primarily using Python. Completion means being able to **explain, implement, debug, and design**.
+Recommended duration: 18 weeks, 6–10 hours per week, primarily using Python. Completion means being able to **explain, implement, debug, design, and pass the corresponding system-graded assessment**.
 
 ---
 
