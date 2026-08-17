@@ -38,12 +38,12 @@ def _table_payload(db: Database) -> dict[str, list[dict[str, Any]]]:
 
 
 def export_all_json(db: Database) -> str:
-    """Export user-owned learning data with a versioned envelope."""
-    payload = {
+    """Export all learning data while preserving the original top-level table shape."""
+    payload: dict[str, Any] = _table_payload(db)
+    payload["_meta"] = {
         "format": "llm-engineering-learning-backup",
         "version": BACKUP_FORMAT_VERSION,
         "exported_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "tables": _table_payload(db),
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
@@ -56,14 +56,21 @@ def parse_backup_json(text: str) -> dict[str, list[dict[str, Any]]]:
     if not isinstance(payload, dict):
         raise BackupError("Backup root must be a JSON object")
 
-    # V1 backups stored tables directly at the root. V2 uses a versioned envelope.
-    if payload.get("format") == "llm-engineering-learning-backup":
+    # Compatibility: older V2 development snapshots briefly used an envelope.
+    if payload.get("format") == "llm-engineering-learning-backup" and "tables" in payload:
         version = int(payload.get("version") or 0)
         if version < 1 or version > BACKUP_FORMAT_VERSION:
             raise BackupError(f"Unsupported backup version: {version}")
         tables = payload.get("tables")
     else:
-        tables = payload
+        meta = payload.get("_meta")
+        if meta is not None:
+            if not isinstance(meta, dict) or meta.get("format") != "llm-engineering-learning-backup":
+                raise BackupError("Invalid backup metadata")
+            version = int(meta.get("version") or 0)
+            if version < 1 or version > BACKUP_FORMAT_VERSION:
+                raise BackupError(f"Unsupported backup version: {version}")
+        tables = {key: value for key, value in payload.items() if key != "_meta"}
 
     if not isinstance(tables, dict):
         raise BackupError("Backup tables must be a JSON object")
