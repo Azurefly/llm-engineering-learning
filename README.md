@@ -30,7 +30,7 @@
 - 系统诊断页：SQLite integrity、题库质量、Code Runner、备份状态。
 - Trusted Host、跨站写请求防护和安全响应头。
 - Python 直接启动和加固后的 Docker Compose 启动。
-- GitHub Actions 三层验证：pytest、代码沙箱 Smoke Test、最终 Docker Compose Smoke Test。
+- GitHub Actions 三层验证：跨平台 pytest、代码沙箱 Smoke Test、最终 Docker Compose Smoke Test。
 
 ### Python
 
@@ -46,7 +46,7 @@ python run.py
 
 打开：`http://127.0.0.1:8765`
 
-开发/主动测试新版依赖时，也可以使用 `requirements.txt` 的兼容范围。
+Python 模式的数据文件位于 `data/learning.db`。开发/主动测试新版依赖时，也可以使用 `requirements.txt` 的兼容范围。
 
 ### Docker Compose
 
@@ -56,7 +56,9 @@ docker compose up -d --build
 
 打开：`http://127.0.0.1:8765`
 
-学习数据保存在 `data/learning.db`。`data/*` 默认全部排除在 Git 之外。Compose 只映射宿主机 `127.0.0.1:8765`；SQLite 数据卷显式保持可写，同时保留 Linux capabilities 全移除、`no-new-privileges`、受限 `/tmp` 与应用健康检查。
+Docker 默认使用 named volume `llm-engineering-learning-data` 保存 `/data/learning.db`，避免 Linux / macOS / Windows 上 bind mount 的 UID/权限差异。`docker compose down` 不会删除数据；只有显式执行 `docker compose down -v` 才会删除该 volume。需要迁移或查看学习数据时，优先使用应用内“数据与备份”的 JSON 导出/恢复功能。
+
+Compose 只映射宿主机 `127.0.0.1:8765`，并保留 Linux capabilities 全移除、`no-new-privileges`、受限 `/tmp` 与应用健康检查。
 
 ### 主要页面
 
