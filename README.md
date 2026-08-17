@@ -56,7 +56,7 @@ docker compose up -d --build
 
 打开：`http://127.0.0.1:8765`
 
-学习数据保存在 `data/learning.db`。`data/*` 默认全部排除在 Git 之外。Compose 只映射宿主机 `127.0.0.1:8765`，并启用只读根文件系统、能力移除、`no-new-privileges` 和健康检查。
+学习数据保存在 `data/learning.db`。`data/*` 默认全部排除在 Git 之外。Compose 只映射宿主机 `127.0.0.1:8765`；SQLite 数据卷显式保持可写，同时保留 Linux capabilities 全移除、`no-new-privileges`、受限 `/tmp` 与应用健康检查。
 
 ### 主要页面
 
