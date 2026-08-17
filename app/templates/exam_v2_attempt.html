@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ exam_title }}{% endblock %}
+{% block content %}
+<div class="exam-page"><div class="page-head exam-head"><div><div class="eyebrow">{{ 'RANDOMIZED EXAM' if attempt.mode == 'weekly' else ('STAGE EXAM' if attempt.mode == 'stage' else 'MISTAKE REVIEW') }}</div><h1>{{ exam_title }}</h1><p>{{ 'Pass score' if lang == 'en' else '及格线' }} {{ attempt.pass_score|round(0) }}% · {{ questions|length }} {{ 'questions' if lang == 'en' else '题' }}</p></div><div class="exam-attempt-id">#{{ attempt.id }}</div></div>
+<form method="post" action="/exam-v2/attempt/{{ attempt.id }}/submit" class="exam-form">
+{% for q in questions %}
+<section class="question-card"><div class="question-head"><span>Q{{ q.seq }} · {{ q.points }} {{ 'pts' if lang == 'en' else '分' }}</span><span class="difficulty difficulty-{{ q.difficulty }}">{{ q.difficulty|upper }}</span></div><div class="knowledge-row">{% for k in q.knowledge %}<span class="tag">{{ k }}</span>{% endfor %}</div><h3>{{ q.prompt }}</h3>
+{% if q.type == 'single' %}<div class="answer-options">{% for opt in q.options %}<label class="answer-option"><input type="radio" name="q_{{ q.id }}" value="{{ opt.value }}"> <span>{{ opt.label }}</span></label>{% endfor %}</div>
+{% elif q.type == 'multiple' %}<div class="answer-options">{% for opt in q.options %}<label class="answer-option"><input type="checkbox" name="q_{{ q.id }}" value="{{ opt.value }}"> <span>{{ opt.label }}</span></label>{% endfor %}</div>
+{% elif q.type == 'boolean' %}<div class="answer-options horizontal"><label class="answer-option"><input type="radio" name="q_{{ q.id }}" value="true"> <span>{{ 'True' if lang == 'en' else '正确' }}</span></label><label class="answer-option"><input type="radio" name="q_{{ q.id }}" value="false"> <span>{{ 'False' if lang == 'en' else '错误' }}</span></label></div>
+{% elif q.type == 'fill' %}<input class="exam-input" name="q_{{ q.id }}" placeholder="{{ 'Your answer' if lang == 'en' else '请输入答案' }}">
+{% else %}<textarea class="exam-textarea" name="q_{{ q.id }}" rows="5" placeholder="{{ 'Explain with key concepts.' if lang == 'en' else '请用关键概念完整作答。' }}"></textarea>{% endif %}
+</section>
+{% endfor %}
+<div class="exam-submit-bar"><span>{{ 'The system grades immediately after submission. Submitted answers cannot be edited.' if lang == 'en' else '提交后立即由系统判分，本次答案不可再修改。' }}</span><button class="btn btn-primary" type="submit">{{ 'Submit exam' if lang == 'en' else '提交试卷' }}</button></div>
+</form></div>
+{% endblock %}
