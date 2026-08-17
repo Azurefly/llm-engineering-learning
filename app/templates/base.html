@@ -15,8 +15,10 @@
 <div class="app-shell">
 <aside class="sidebar">
   <div class="brand"><div class="brand-mark">LLM</div><div><strong>{{ t('app_name') }}</strong><small>Local-first learning workspace</small></div></div>
+  <form class="sidebar-search" method="get" action="/search"><input type="search" name="q" minlength="2" maxlength="120" placeholder="{{ 'Search…' if lang == 'en' else '搜索课程/笔记/链接…' }}"><button type="submit" aria-label="Search">⌕</button></form>
   <nav class="main-nav">
     <a href="/" class="nav-item {% if current_path == '/' %}active{% endif %}">⌂ {{ t('dashboard') }}</a>
+    <a href="/search" class="nav-item {% if current_path.startswith('/search') %}active{% endif %}">⌕ {{ 'Search' if lang == 'en' else '全局搜索' }}</a>
     <a href="/adaptive" class="nav-item {% if current_path == '/adaptive' or current_path.startswith('/adaptive/review') %}active{% endif %}">◇ {{ 'Adaptive Learning' if lang == 'en' else '自适应学习' }}</a>
     <a href="/adaptive-test" class="nav-item {% if current_path.startswith('/adaptive-test') %}active{% endif %}">◎ {{ 'Adaptive Test' if lang == 'en' else '自适应测试' }}</a>
     <a href="/exam-lab" class="nav-item {% if current_path.startswith('/exam-lab') or current_path.startswith('/exam-v2') or current_path.startswith('/stage-exams') or current_path.startswith('/question-bank') %}active{% endif %}">✓ {{ 'Exam Center' if lang == 'en' else '考试中心' }}</a>
