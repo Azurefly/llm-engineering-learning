@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from typing import Any
 
 from . import exam_v2
@@ -118,8 +119,21 @@ def _selected_questions_snapshot(attempt_id: int) -> list[dict[str, Any]]:
 
 
 def install() -> None:
+    """Install snapshot-aware functions everywhere they may have been imported by name.
+
+    Pytest and application modules may import versioned routers in different orders.
+    Patching their module globals makes the behavior deterministic regardless of import order.
+    """
     exam_v2._create_attempt = _create_attempt_snapshot
     exam_v2._selected_questions = _selected_questions_snapshot
+    for module_name in ("app.exam_v3", "app.adaptive", "app.adaptive_v5"):
+        module = sys.modules.get(module_name)
+        if module is None:
+            continue
+        if hasattr(module, "_create_attempt"):
+            setattr(module, "_create_attempt", _create_attempt_snapshot)
+        if hasattr(module, "_selected_questions"):
+            setattr(module, "_selected_questions", _selected_questions_snapshot)
 
 
 install()
