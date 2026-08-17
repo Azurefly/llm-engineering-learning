@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · Result{% endblock %}
+{% block content %}
+<div class="coding-page">
+  <div class="result-hero {% if result.passed %}result-pass{% else %}result-fail{% endif %}">
+    <div><div class="eyebrow">CODE EXAM RESULT · #{{ result.id }}</div><h1>{{ title }}</h1><p>{% if result.reason %}{{ result.reason }}{% else %}{% if lang == 'en' %}System-graded by sandboxed pytest.{% else %}由隔离 pytest 自动评分。{% endif %}{% endif %}</p></div>
+    <div class="score-ring"><strong>{{ result.score_percent|round(1) }}%</strong><span>{% if result.passed %}PASS{% else %}RESULT{% endif %}</span></div>
+  </div>
+  <div class="result-metrics"><div><span>{% if lang == 'en' %}Passed tests{% else %}通过测试{% endif %}</span><strong>{{ result.passed_tests }}</strong></div><div><span>{% if lang == 'en' %}Total tests{% else %}测试总数{% endif %}</span><strong>{{ result.total_tests }}</strong></div><div><span>{% if lang == 'en' %}Pass mark{% else %}及格线{% endif %}</span><strong>{{ challenge.pass_score }}%</strong></div></div>
+  <div class="result-actions"><a class="btn" href="/coding-labs/{{ lesson.key }}">{% if lang == 'en' %}Back to editor{% else %}返回编辑器{% endif %}</a><a class="btn" href="/coding-labs">{% if lang == 'en' %}All labs{% else %}全部实训{% endif %}</a></div>
+  <div class="code-result-grid">
+    <section class="code-output"><div class="panel-head"><h3>pytest stdout</h3></div><pre>{{ result.stdout or '—' }}</pre></section>
+    <section class="code-output"><div class="panel-head"><h3>stderr / runner</h3></div><pre>{{ result.stderr or result.reason or '—' }}</pre></section>
+  </div>
+  <section class="code-output source-review"><div class="panel-head"><h3>solution.py</h3></div><pre>{{ result.source_code }}</pre></section>
+</div>
+{% endblock %}
