@@ -1,0 +1,1 @@
+const slider=document.getElementById('percentInput');const output=document.getElementById('percentValue');if(slider&&output)slider.addEventListener('input',()=>output.textContent=`${slider.value}%`);function confirmDelete(){return window.confirm(document.documentElement.lang==='en'?'Delete this item?':'确认删除这条记录？');}
