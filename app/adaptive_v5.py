@@ -73,8 +73,7 @@ init_tables()
 
 def _loads(value: str | None, fallback: Any) -> Any:
     try:
-        parsed = json.loads(value or "")
-        return parsed
+        return json.loads(value or "")
     except (TypeError, json.JSONDecodeError):
         return fallback
 
@@ -91,10 +90,7 @@ def _session(session_id: int) -> dict[str, Any] | None:
 
 def _items(session_id: int) -> list[dict[str, Any]]:
     with db.connect() as conn:
-        rows = conn.execute(
-            "SELECT * FROM adaptive_session_items WHERE session_id=? ORDER BY seq",
-            (session_id,),
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM adaptive_session_items WHERE session_id=? ORDER BY seq", (session_id,)).fetchall()
     result: list[dict[str, Any]] = []
     for raw in rows:
         item = dict(raw)
@@ -130,14 +126,12 @@ def _default_targets(profile: dict[str, dict[str, Any]], limit: int = 5) -> list
 
 def _session_tag_state(session: dict[str, Any], items: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
     profile = mastery_profile()
-    tags = list(session.get("target_tags") or [])
     state: dict[str, dict[str, float]] = {}
-    for tag in tags:
+    for tag in list(session.get("target_tags") or []):
         base = profile.get(tag, {})
-        state[tag] = {
-            "score": float(base.get("score") or 50.0 if int(base.get("evidence_count") or 0) else 50.0),
-            "evidence": float(base.get("evidence_count") or 0),
-        }
+        evidence = int(base.get("evidence_count") or 0)
+        score = float(base.get("score")) if evidence and base.get("score") is not None else 50.0
+        state[tag] = {"score": score, "evidence": float(evidence)}
     for item in items:
         if item.get("score_percent") is None:
             continue
@@ -145,7 +139,6 @@ def _session_tag_state(session: dict[str, Any], items: list[dict[str, Any]]) -> 
             if tag not in state:
                 continue
             old = state[tag]
-            # Session evidence intentionally reacts faster than the long-term profile.
             weight = min(4.0, 1.0 + old["evidence"] * 0.20)
             old["score"] = round((old["score"] * weight + float(item["score_percent"]) * 1.6) / (weight + 1.6), 2)
             old["evidence"] += 1
@@ -160,14 +153,7 @@ def _desired_difficulty(score: float) -> str:
     return "hard"
 
 
-def _candidate_score(
-    lesson_key: str,
-    question: Question,
-    state: dict[str, dict[str, float]],
-    exposure: dict[str, int],
-    used: set[str],
-    rng: random.Random,
-) -> float:
+def _candidate_score(lesson_key: str, question: Question, state: dict[str, dict[str, float]], exposure: dict[str, int], used: set[str], rng: random.Random) -> float:
     if question.id in used:
         return -1e9
     tags = knowledge_for(lesson_key, question)
@@ -198,7 +184,6 @@ def _pick_next(session: dict[str, Any], items: list[dict[str, Any]]) -> tuple[st
     if not candidates:
         return None
     candidates.sort(key=lambda x: x[0], reverse=True)
-    # Randomize among similarly strong candidates so repeated sessions do not become deterministic drills.
     head = candidates[: min(4, len(candidates))]
     _, lesson_key, question = rng.choice(head)
     return lesson_key, question
@@ -220,18 +205,9 @@ def _ensure_pending(session: dict[str, Any]) -> dict[str, Any] | None:
     knowledge = list(knowledge_for(lesson_key, question))
     with db.connect() as conn:
         conn.execute(
-            """INSERT INTO adaptive_session_items(
-                   session_id,seq,lesson_key,question_id,difficulty,knowledge_json,created_at
-               ) VALUES(?,?,?,?,?,?,?)""",
-            (
-                session["id"],
-                seq,
-                lesson_key,
-                question.id,
-                difficulty_for(question),
-                json.dumps(knowledge, ensure_ascii=False),
-                now_iso(),
-            ),
+            """INSERT INTO adaptive_session_items(session_id,seq,lesson_key,question_id,difficulty,knowledge_json,created_at)
+               VALUES(?,?,?,?,?,?,?)""",
+            (session["id"], seq, lesson_key, question.id, difficulty_for(question), json.dumps(knowledge, ensure_ascii=False), now_iso()),
         )
     return _items(int(session["id"]))[-1]
 
@@ -244,15 +220,9 @@ def _finish_session(session: dict[str, Any]) -> int:
         raise HTTPException(409, "Adaptive session has no answered items")
     selected = [(str(x["lesson_key"]), x["question"]) for x in items]
     attempt_id = _create_attempt(
-        lesson_key="adaptive-test",
-        lang=str(session["language"]),
-        mode="adaptive-sequential",
-        scope_key="adaptive-test",
-        title_zh="逐题自适应能力测试",
-        title_en="Sequential Adaptive Assessment",
-        selected=selected,
-        pass_score=80,
-        seed=int(session["seed"]),
+        lesson_key="adaptive-test", lang=str(session["language"]), mode="adaptive-sequential", scope_key="adaptive-test",
+        title_zh="逐题自适应能力测试", title_en="Sequential Adaptive Assessment", selected=selected,
+        pass_score=80, seed=int(session["seed"]),
     )
     answers = {str(x["question_id"]): x["answer"] for x in items}
     attempt = _attempt(attempt_id)
@@ -260,10 +230,7 @@ def _finish_session(session: dict[str, Any]) -> int:
         raise HTTPException(500, "Failed to create assessment attempt")
     _save_submission(attempt, answers, _selected_questions(attempt_id))
     with db.connect() as conn:
-        conn.execute(
-            "UPDATE adaptive_sessions SET status='completed',completed_at=?,exam_attempt_id=? WHERE id=?",
-            (now_iso(), attempt_id, session["id"]),
-        )
+        conn.execute("UPDATE adaptive_sessions SET status='completed',completed_at=?,exam_attempt_id=? WHERE id=?", (now_iso(), attempt_id, session["id"]))
     return attempt_id
 
 
@@ -271,17 +238,15 @@ def _finish_session(session: dict[str, Any]) -> int:
 def adaptive_test_home(request: Request):
     lang = _lang(request)
     profile = mastery_profile()
-    targets = _default_targets(profile)
     c = _nav(request, lang)
-    c.update({"targets": targets, "profile": profile})
+    c.update({"targets": _default_targets(profile), "profile": profile})
     return templates.TemplateResponse(request=request, name="adaptive_test_home.html", context=c)
 
 
 @router.post("/adaptive-test/start")
 def start_adaptive_test(request: Request):
     lang = _lang(request)
-    profile = mastery_profile()
-    targets = _default_targets(profile)
+    targets = _default_targets(mastery_profile())
     if not targets:
         raise HTTPException(409, "Question bank has no target knowledge tags")
     seed = secrets.randbits(31)
@@ -311,17 +276,14 @@ def adaptive_test_take(request: Request, session_id: int):
         raise HTTPException(500, "Question is missing from bank")
     lang = str(session["language"])
     items = _items(session_id)
-    state = _session_tag_state(session, items)
     c = _nav(request, lang)
-    c.update(
-        {
-            "session": session,
-            "item": pending,
-            "question": _question_view({**pending, "question": question}, lang),
-            "answered_count": sum(1 for x in items if x.get("answer_json") is not None),
-            "tag_state": state,
-        }
-    )
+    c.update({
+        "session": session,
+        "item": pending,
+        "question": _question_view({**pending, "question": question}, lang),
+        "answered_count": sum(1 for x in items if x.get("answer_json") is not None),
+        "tag_state": _session_tag_state(session, items),
+    })
     return templates.TemplateResponse(request=request, name="adaptive_test.html", context=c)
 
 
@@ -330,8 +292,7 @@ async def adaptive_test_answer(request: Request, session_id: int):
     session = _session(session_id)
     if not session or session["status"] != "started":
         raise HTTPException(409, "Adaptive session is not active")
-    items = _items(session_id)
-    pending = next((x for x in items if x.get("answer_json") is None), None)
+    pending = next((x for x in _items(session_id) if x.get("answer_json") is None), None)
     if not pending or not pending.get("question"):
         raise HTTPException(409, "No active adaptive item")
     q: Question = pending["question"]
@@ -343,8 +304,7 @@ async def adaptive_test_answer(request: Request, session_id: int):
     score_percent = round(float(detail.get("earned") or 0) / max_points * 100, 2) if max_points else 0.0
     with db.connect() as conn:
         conn.execute(
-            """UPDATE adaptive_session_items
-               SET answer_json=?,score_percent=?,answered_at=? WHERE id=?""",
+            "UPDATE adaptive_session_items SET answer_json=?,score_percent=?,answered_at=? WHERE id=?",
             (json.dumps(answer, ensure_ascii=False), score_percent, now_iso(), pending["id"]),
         )
     session = _session(session_id)
