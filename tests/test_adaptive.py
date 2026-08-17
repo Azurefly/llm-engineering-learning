@@ -40,7 +40,7 @@ def test_adaptive_dashboard_is_available():
     assert "masteryRadar" in response.text
 
 
-def test_failed_exam_creates_weakness_and_adaptive_review_exam():
+def test_failed_exam_creates_weakness_renders_recommendation_and_builds_review_exam():
     started = client.post("/exams/week03/random-start", follow_redirects=False)
     assert started.status_code == 303
     failed_attempt = int(started.headers["location"].rsplit("/", 1)[-1])
@@ -54,6 +54,11 @@ def test_failed_exam_creates_weakness_and_adaptive_review_exam():
         assert submitted.status_code == 303
         profile = mastery_profile()
         assert any(item["status"] in {"weak", "developing"} for item in profile.values())
+
+        page = client.get("/adaptive")
+        assert page.status_code == 200
+        assert "Week 3" in page.text
+        assert "week03" in page.text
 
         review = client.post("/adaptive/review/start", follow_redirects=False)
         assert review.status_code == 303
