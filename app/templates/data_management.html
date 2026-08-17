@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Data & Backup' if lang == 'en' else '数据与备份' }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="adaptive-page">
+  <section class="adaptive-hero">
+    <div><div class="adaptive-eyebrow">LOCAL DATA</div><h1>{{ 'Data & Backup' if lang == 'en' else '数据与备份' }}</h1><p>{{ 'Export, restore and protect your local learning history.' if lang == 'en' else '导出、恢复并保护本地学习历史。' }}</p></div>
+  </section>
+  {% if status %}<div class="exam-outcome passed">✓ {{ 'Restore completed' if lang == 'en' else '数据恢复完成' }} · {{ status }}</div>{% endif %}
+  <div class="adaptive-grid two-col">
+    <section class="adaptive-card">
+      <div class="adaptive-card-head"><div><span class="section-kicker">EXPORT</span><h2>{{ 'Download full backup' if lang == 'en' else '下载完整备份' }}</h2></div></div>
+      <p>{{ 'Includes progress, notes, links, exams, drafts, coding attempts and adaptive sessions.' if lang == 'en' else '包含学习进度、思考、链接、考试、草稿、代码实训和自适应测试记录。' }}</p>
+      <a class="adaptive-btn primary" href="/backup.json">{{ 'Download JSON backup' if lang == 'en' else '下载 JSON 备份' }}</a>
+    </section>
+    <section class="adaptive-card">
+      <div class="adaptive-card-head"><div><span class="section-kicker">RESTORE</span><h2>{{ 'Restore from backup' if lang == 'en' else '从备份恢复' }}</h2></div></div>
+      <p>{{ 'Restore replaces current learning data. A safety snapshot is created automatically before import.' if lang == 'en' else '恢复会覆盖当前学习数据；导入前系统会自动创建一份安全快照。' }}</p>
+      <form method="post" action="/data-management/restore" enctype="multipart/form-data" class="stack-form">
+        <input type="file" name="file" accept="application/json,.json" required>
+        <button class="adaptive-btn" type="submit">{{ 'Validate & restore' if lang == 'en' else '校验并恢复' }}</button>
+      </form>
+    </section>
+  </div>
+  <section class="adaptive-card">
+    <div class="adaptive-card-head"><div><span class="section-kicker">SAFETY SNAPSHOTS</span><h2>{{ 'Automatic pre-restore copies' if lang == 'en' else '自动恢复前快照' }}</h2></div></div>
+    {% if snapshots %}<div class="recommendation-list">{% for name in snapshots %}<article class="recommendation-item"><div class="recommendation-main"><strong>{{ name }}</strong><span>data/backups/</span></div></article>{% endfor %}</div>{% else %}<div class="adaptive-empty"><p>{{ 'No restore snapshot has been created yet.' if lang == 'en' else '当前还没有恢复前安全快照。' }}</p></div>{% endif %}
+  </section>
+</div>
+{% endblock %}
