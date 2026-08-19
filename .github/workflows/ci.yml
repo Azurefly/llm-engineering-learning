@@ -106,6 +106,19 @@ jobs:
             sleep 1
           done
           curl -fsS -b cookies.txt 'http://127.0.0.1:8765/search?q=multi-user-persistence-987654' | grep -q 'CI Docker persistence probe'
+      - name: Verify second user cannot see first user data
+        run: |
+          curl -fsS -c cookies2.txt -b cookies2.txt -X POST http://127.0.0.1:8765/register \
+            --data-urlencode 'username=ciuser2' \
+            --data-urlencode 'display_name=CI User 2' \
+            --data-urlencode 'password=ci2-password-123' \
+            --data-urlencode 'password_confirm=ci2-password-123' \
+            -o /dev/null
+          if curl -fsS -b cookies2.txt 'http://127.0.0.1:8765/search?q=multi-user-persistence-987654' | grep -q 'CI Docker persistence probe'; then
+            echo 'Cross-user data leak detected'
+            exit 1
+          fi
+          curl -fsS -b cookies.txt 'http://127.0.0.1:8765/search?q=multi-user-persistence-987654' | grep -q 'CI Docker persistence probe'
       - name: Container status
         run: docker compose ps
       - name: Stop application
