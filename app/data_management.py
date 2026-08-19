@@ -26,7 +26,7 @@ def _restore_limit_bytes() -> int:
 def data_management(request: Request):
     lang = _lang(request)
     c = _nav(request, lang)
-    backup_dir = db.path.parent / "backups"
+    backup_dir = db.backup_dir
     pre_restore = sorted(backup_dir.glob("pre-restore-*.json"), reverse=True)[:10] if backup_dir.exists() else []
     automatic = sorted(backup_dir.glob("auto-*.json"), reverse=True)[:10] if backup_dir.exists() else []
     c.update({
