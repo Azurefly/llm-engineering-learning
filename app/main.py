@@ -151,4 +151,4 @@ def export_backup(): return Response(export_all_json(db),media_type="application
 
 
 @app.get("/health")
-def health(): return {"status":"ok","db":str(DB_PATH)}
+def health(): return {"status":"ok"}
