@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ 'My Account' if lang == 'en' else '我的账号' }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="adaptive-page admin-page">
+  <section class="adaptive-hero">
+    <div>
+      <div class="adaptive-eyebrow">ACCOUNT</div>
+      <h1>{{ 'My Account' if lang == 'en' else '我的账号' }}</h1>
+      <p>{{ 'Manage your sign-in identity and password. Learning data remains in your private database.' if lang == 'en' else '管理自己的登录信息和密码；学习数据仍保存在你的独立数据库中。' }}</p>
+    </div>
+    {% if account.role == 'superadmin' %}<a class="adaptive-btn primary" href="/admin/users">{{ 'User administration' if lang == 'en' else '用户管理' }}</a>{% endif %}
+  </section>
+
+  {% if error %}<div class="admin-alert error">{{ error }}</div>{% endif %}
+  {% if status == 'profile-saved' %}<div class="admin-alert success">✓ {{ 'Account profile updated.' if lang == 'en' else '账号信息已更新。' }}</div>{% endif %}
+
+  <div class="adaptive-grid two-col">
+    <section class="adaptive-card">
+      <div class="adaptive-card-head"><div><span class="section-kicker">PROFILE</span><h2>{{ 'Sign-in identity' if lang == 'en' else '登录信息' }}</h2></div><span class="admin-role {{ account.role }}">{{ 'SUPERADMIN' if account.role == 'superadmin' else 'USER' }}</span></div>
+      <form method="post" action="/account/profile" class="admin-form">
+        <label>{{ 'Username' if lang == 'en' else '用户名' }}<input name="username" value="{{ account.username }}" minlength="3" maxlength="32" required></label>
+        <label>{{ 'Display name' if lang == 'en' else '显示名称' }}<input name="display_name" value="{{ account.display_name }}" maxlength="64"></label>
+        <div class="admin-meta-grid">
+          <div><span>{{ 'Created' if lang == 'en' else '注册时间' }}</span><strong>{{ account.created_at or '-' }}</strong></div>
+          <div><span>{{ 'Last login' if lang == 'en' else '最近登录' }}</span><strong>{{ account.last_login_at or '-' }}</strong></div>
+        </div>
+        <button class="adaptive-btn primary" type="submit">{{ 'Save profile' if lang == 'en' else '保存账号信息' }}</button>
+      </form>
+    </section>
+
+    <section class="adaptive-card">
+      <div class="adaptive-card-head"><div><span class="section-kicker">SECURITY</span><h2>{{ 'Change password' if lang == 'en' else '修改密码' }}</h2></div></div>
+      <p>{{ 'After changing the password, all sessions for this account are revoked and you must sign in again.' if lang == 'en' else '修改密码后，该账号的全部登录 Session 都会失效，需要使用新密码重新登录。' }}</p>
+      <form method="post" action="/account/password" class="admin-form">
+        <label>{{ 'Current password' if lang == 'en' else '当前密码' }}<input name="current_password" type="password" autocomplete="current-password" required></label>
+        <label>{{ 'New password' if lang == 'en' else '新密码' }}<input name="new_password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+        <label>{{ 'Confirm new password' if lang == 'en' else '确认新密码' }}<input name="new_password_confirm" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+        <button class="adaptive-btn" type="submit">{{ 'Change password' if lang == 'en' else '修改密码' }}</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}
