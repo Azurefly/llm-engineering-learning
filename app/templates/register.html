@@ -32,8 +32,8 @@
         {% if error %}<div class="auth-error">{{ error }}</div>{% endif %}
         <form method="post" action="/register" class="auth-form">
           <label>{{ 'Username' if lang == 'en' else '用户名' }}
-            <input name="username" value="{{ username }}" autocomplete="username" minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]{3,32}" required autofocus>
-            <small>{{ 'Letters, digits, dot, underscore and hyphen.' if lang == 'en' else '支持字母、数字、点、下划线和连字符。' }}</small>
+            <input name="username" value="{{ username }}" autocomplete="username" minlength="3" maxlength="32" required autofocus>
+            <small>{{ 'Letters or digits (Unicode supported), dot, underscore and hyphen.' if lang == 'en' else '支持中英文字符、数字、点、下划线和连字符。' }}</small>
           </label>
           <label>{{ 'Display name' if lang == 'en' else '显示名称' }}
             <input name="display_name" value="{{ display_name }}" maxlength="64" autocomplete="nickname" placeholder="{{ 'Optional' if lang == 'en' else '可选，可填写中文名' }}">
