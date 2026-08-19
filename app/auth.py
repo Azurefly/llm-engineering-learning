@@ -25,6 +25,7 @@ REPO_ROOT = APP_DIR.parent
 SESSION_COOKIE = "llm_session"
 PBKDF2_ITERATIONS = 310_000
 PUBLIC_PATHS = {"/login", "/register", "/health", "/favicon.ico"}
+VALID_ROLES = {"user", "superadmin"}
 router = APIRouter()
 templates = Jinja2Templates(directory=APP_DIR / "templates")
 
@@ -140,6 +141,7 @@ class AccountStore:
                     display_name TEXT NOT NULL,
                     password_hash TEXT NOT NULL,
                     storage_key TEXT NOT NULL UNIQUE,
+                    role TEXT NOT NULL DEFAULT 'user',
                     is_active INTEGER NOT NULL DEFAULT 1,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
@@ -156,6 +158,17 @@ class AccountStore:
                 CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id, expires_at);
                 """
             )
+            columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+            if "role" not in columns:
+                conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
+            conn.execute("UPDATE users SET role='user' WHERE role IS NULL OR role NOT IN ('user','superadmin')")
+            # Upgrade existing installations safely: if accounts already exist but no
+            # administrator role exists, the earliest account becomes superadmin.
+            has_users = int(conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]) > 0
+            has_admin = int(conn.execute("SELECT COUNT(*) FROM users WHERE role='superadmin'").fetchone()[0]) > 0
+            if has_users and not has_admin:
+                conn.execute("UPDATE users SET role='superadmin',updated_at=? WHERE id=(SELECT MIN(id) FROM users)", (_now_iso(),))
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_users_role_active ON users(role,is_active,id)")
 
     def user_count(self) -> int:
         with self.connect() as conn:
@@ -168,15 +181,14 @@ class AccountStore:
         ts = _now_iso()
         storage_key = uuid.uuid4().hex
         with self.connect() as conn:
-            # Serialize the first-user decision so two concurrent registrations cannot
-            # both claim the legacy single-user learning database.
             conn.execute("BEGIN IMMEDIATE")
             first = int(conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]) == 0
+            role = "superadmin" if first else "user"
             try:
                 cur = conn.execute(
-                    """INSERT INTO users(username,username_key,display_name,password_hash,storage_key,created_at,updated_at)
-                       VALUES(?,?,?,?,?,?,?)""",
-                    (username, key, display_name, hash_password(password), storage_key, ts, ts),
+                    """INSERT INTO users(username,username_key,display_name,password_hash,storage_key,role,created_at,updated_at)
+                       VALUES(?,?,?,?,?,?,?,?)""",
+                    (username, key, display_name, hash_password(password), storage_key, role, ts, ts),
                 )
             except sqlite3.IntegrityError as exc:
                 raise ValueError("用户名已经存在。") from exc
@@ -184,10 +196,28 @@ class AccountStore:
             row = conn.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
         return dict(row), first
 
-    def get_user_by_username(self, username: str) -> dict[str, Any] | None:
+    def get_user_by_username(self, username: str, *, active_only: bool = True) -> dict[str, Any] | None:
+        sql = "SELECT * FROM users WHERE username_key=?"
+        if active_only:
+            sql += " AND is_active=1"
         with self.connect() as conn:
-            row = conn.execute("SELECT * FROM users WHERE username_key=? AND is_active=1", (_username_key(username),)).fetchone()
+            row = conn.execute(sql, (_username_key(username),)).fetchone()
         return dict(row) if row else None
+
+    def get_user_by_id(self, user_id: int) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE id=?", (int(user_id),)).fetchone()
+        return dict(row) if row else None
+
+    def list_users(self) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                """SELECT u.*,
+                          (SELECT COUNT(*) FROM auth_sessions s WHERE s.user_id=u.id AND s.expires_at>?) AS active_sessions
+                   FROM users u ORDER BY u.id""",
+                (_now_iso(),),
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     def verify_login(self, username: str, password: str) -> dict[str, Any] | None:
         user = self.get_user_by_username(username)
@@ -196,6 +226,7 @@ class AccountStore:
         ts = _now_iso()
         with self.connect() as conn:
             conn.execute("UPDATE users SET last_login_at=?,updated_at=? WHERE id=?", (ts, ts, user["id"]))
+        user["last_login_at"] = ts
         return user
 
     def create_session(self, user_id: int) -> str:
@@ -227,6 +258,77 @@ class AccountStore:
             return
         with self.connect() as conn:
             conn.execute("DELETE FROM auth_sessions WHERE token_hash=?", (_token_hash(token),))
+
+    def delete_user_sessions(self, user_id: int) -> None:
+        with self.connect() as conn:
+            conn.execute("DELETE FROM auth_sessions WHERE user_id=?", (int(user_id),))
+
+    def update_identity(self, user_id: int, username: str, display_name: str) -> dict[str, Any]:
+        username = unicodedata.normalize("NFKC", username.strip())
+        display_name = unicodedata.normalize("NFKC", display_name.strip())[:64] or username
+        with self.connect() as conn:
+            try:
+                conn.execute(
+                    "UPDATE users SET username=?,username_key=?,display_name=?,updated_at=? WHERE id=?",
+                    (username, _username_key(username), display_name, _now_iso(), int(user_id)),
+                )
+            except sqlite3.IntegrityError as exc:
+                raise ValueError("用户名已经存在。") from exc
+            row = conn.execute("SELECT * FROM users WHERE id=?", (int(user_id),)).fetchone()
+        if not row:
+            raise ValueError("用户不存在。")
+        return dict(row)
+
+    def set_active(self, actor_id: int, user_id: int, active: bool) -> None:
+        actor_id, user_id = int(actor_id), int(user_id)
+        if actor_id == user_id and not active:
+            raise ValueError("超级管理员不能停用自己的账号。")
+        with self.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT role,is_active FROM users WHERE id=?", (user_id,)).fetchone()
+            if not row:
+                raise ValueError("用户不存在。")
+            if not active and row["role"] == "superadmin":
+                others = int(conn.execute("SELECT COUNT(*) FROM users WHERE role='superadmin' AND is_active=1 AND id<>?", (user_id,)).fetchone()[0])
+                if others == 0:
+                    raise ValueError("系统至少需要保留一个启用状态的超级管理员。")
+            conn.execute("UPDATE users SET is_active=?,updated_at=? WHERE id=?", (1 if active else 0, _now_iso(), user_id))
+            if not active:
+                conn.execute("DELETE FROM auth_sessions WHERE user_id=?", (user_id,))
+
+    def set_role(self, actor_id: int, user_id: int, role: str) -> None:
+        role = role.strip().lower()
+        actor_id, user_id = int(actor_id), int(user_id)
+        if role not in VALID_ROLES:
+            raise ValueError("无效的用户角色。")
+        if actor_id == user_id and role != "superadmin":
+            raise ValueError("超级管理员不能降低自己的角色。")
+        with self.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT role,is_active FROM users WHERE id=?", (user_id,)).fetchone()
+            if not row:
+                raise ValueError("用户不存在。")
+            if row["role"] == "superadmin" and role != "superadmin":
+                others = int(conn.execute("SELECT COUNT(*) FROM users WHERE role='superadmin' AND is_active=1 AND id<>?", (user_id,)).fetchone()[0])
+                if others == 0:
+                    raise ValueError("系统至少需要保留一个启用状态的超级管理员。")
+            conn.execute("UPDATE users SET role=?,updated_at=? WHERE id=?", (role, _now_iso(), user_id))
+
+    def reset_password(self, user_id: int, new_password: str) -> None:
+        with self.connect() as conn:
+            cur = conn.execute(
+                "UPDATE users SET password_hash=?,updated_at=? WHERE id=?",
+                (hash_password(new_password), _now_iso(), int(user_id)),
+            )
+            if cur.rowcount != 1:
+                raise ValueError("用户不存在。")
+            conn.execute("DELETE FROM auth_sessions WHERE user_id=?", (int(user_id),))
+
+    def change_password(self, user_id: int, current_password: str, new_password: str) -> None:
+        user = self.get_user_by_id(int(user_id))
+        if not user or not verify_password(current_password, str(user["password_hash"])):
+            raise ValueError("当前密码不正确。")
+        self.reset_password(int(user_id), new_password)
 
 
 _STORES: dict[str, AccountStore] = {}
@@ -392,7 +494,7 @@ def install_auth(app: FastAPI, *, initializer: Callable[[], None] | None = None)
     @app.middleware("http")
     async def authentication(request: Request, call_next):
         if os.getenv("LLM_AUTH_TEST_BYPASS", "0").strip().lower() in {"1", "true", "yes", "on"}:
-            request.state.user = {"id": 0, "username": "test", "display_name": "Test User", "storage_key": "test"}
+            request.state.user = {"id": 0, "username": "test", "display_name": "Test User", "storage_key": "test", "role": "superadmin"}
             return await call_next(request)
 
         store = account_store()
@@ -419,8 +521,7 @@ def install_auth(app: FastAPI, *, initializer: Callable[[], None] | None = None)
             if initializer and ctx.storage_key not in initialized_users:
                 initializer()
                 initialized_users.add(ctx.storage_key)
-            response = await call_next(request)
-            return response
+            return await call_next(request)
         finally:
             reset_current_user(token)
 
