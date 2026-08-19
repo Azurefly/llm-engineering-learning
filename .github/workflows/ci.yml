@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   test:
@@ -124,3 +125,32 @@ jobs:
       - name: Stop application
         if: always()
         run: docker compose down -v
+
+  ci-gate:
+    name: aggregate CI gate
+    needs: [test, sandbox-smoke, app-docker-smoke]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish aggregate status and enforce gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TEST_RESULT: ${{ needs.test.result }}
+          SANDBOX_RESULT: ${{ needs.sandbox-smoke.result }}
+          DOCKER_RESULT: ${{ needs.app-docker-smoke.result }}
+        run: |
+          state=failure
+          description="One or more CI gates failed"
+          if [ "$TEST_RESULT" = "success" ] && [ "$SANDBOX_RESULT" = "success" ] && [ "$DOCKER_RESULT" = "success" ]; then
+            state=success
+            description="Cross-platform tests, sandbox and Docker isolation passed"
+          fi
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            curl -fsS -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "X-GitHub-Api-Version: 2026-03-10" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+              -d "{\"state\":\"$state\",\"context\":\"llm-learning/ci-gate\",\"description\":\"$description\"}" >/dev/null
+          fi
+          test "$state" = "success"
