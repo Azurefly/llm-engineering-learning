@@ -8,9 +8,10 @@ import secrets
 import sqlite3
 import unicodedata
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 from urllib.parse import quote
 
 from fastapi import APIRouter, FastAPI, Form, HTTPException, Request
@@ -111,12 +112,20 @@ class AccountStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.init()
 
-    def connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def connect(self) -> Iterator[sqlite3.Connection]:
         conn = sqlite3.connect(self.path, timeout=5.0)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("PRAGMA busy_timeout = 5000")
-        return conn
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def init(self) -> None:
         with self.connect() as conn:
@@ -159,6 +168,9 @@ class AccountStore:
         ts = _now_iso()
         storage_key = uuid.uuid4().hex
         with self.connect() as conn:
+            # Serialize the first-user decision so two concurrent registrations cannot
+            # both claim the legacy single-user learning database.
+            conn.execute("BEGIN IMMEDIATE")
             first = int(conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]) == 0
             try:
                 cur = conn.execute(
@@ -181,8 +193,9 @@ class AccountStore:
         user = self.get_user_by_username(username)
         if not user or not verify_password(password, str(user["password_hash"])):
             return None
+        ts = _now_iso()
         with self.connect() as conn:
-            conn.execute("UPDATE users SET last_login_at=?,updated_at=? WHERE id=?", (_now_iso(), _now_iso(), user["id"]))
+            conn.execute("UPDATE users SET last_login_at=?,updated_at=? WHERE id=?", (ts, ts, user["id"]))
         return user
 
     def create_session(self, user_id: int) -> str:
@@ -207,8 +220,6 @@ class AccountStore:
                    WHERE s.token_hash=? AND s.expires_at>? AND u.is_active=1""",
                 (digest, _now_iso()),
             ).fetchone()
-            if row:
-                conn.execute("UPDATE auth_sessions SET last_seen_at=? WHERE token_hash=?", (_now_iso(), digest))
         return dict(row) if row else None
 
     def delete_session(self, token: str) -> None:
