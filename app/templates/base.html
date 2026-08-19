@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/static/adaptive.css">
   <link rel="stylesheet" href="/static/adaptive_v5.css">
   <link rel="stylesheet" href="/static/exam_entry.css">
+  <link rel="stylesheet" href="/static/auth.css">
 </head>
 <body>
 <div class="app-shell">
@@ -32,7 +33,19 @@
   </nav>
   <div class="sidebar-label">{{ t('curriculum') }}</div>
   <div class="lesson-nav">{% for item in lessons %}<a class="lesson-nav-item {% if current_path == '/course/' + item.key %}active{% endif %}" href="/course/{{ item.key }}"><span class="week-pill">{{ '%02d'|format(item.week) }}</span><span class="lesson-nav-text">{{ item.title }}</span>{% if item.progress.status == 'completed' %}<span class="status-dot done"></span>{% elif item.progress.status == 'in_progress' %}<span class="status-dot doing"></span>{% else %}<span class="status-dot"></span>{% endif %}</a>{% endfor %}</div>
-  <div class="sidebar-footer"><a href="/data-management" class="footer-link">⇩ {{ t('backup') }}</a><div class="lang-switch"><a href="/language/zh-CN?next={{ current_path }}" class="{% if lang != 'en' %}selected{% endif %}">中文</a><a href="/language/en?next={{ current_path }}" class="{% if lang == 'en' %}selected{% endif %}">EN</a></div></div>
+  <div class="sidebar-footer">
+    <a href="/data-management" class="footer-link">⇩ {{ t('backup') }}</a>
+    <div class="lang-switch"><a href="/language/zh-CN?next={{ current_path }}" class="{% if lang != 'en' %}selected{% endif %}">中文</a><a href="/language/en?next={{ current_path }}" class="{% if lang == 'en' %}selected{% endif %}">EN</a></div>
+    {% if request.state.user %}
+    <div class="sidebar-account">
+      <div class="sidebar-account-main">
+        <div class="sidebar-avatar">{{ (request.state.user.display_name or request.state.user.username)[:1]|upper }}</div>
+        <div class="sidebar-account-text"><strong>{{ request.state.user.display_name }}</strong><span>@{{ request.state.user.username }}</span></div>
+      </div>
+      <form class="logout-form" method="post" action="/logout"><button class="logout-button" type="submit">↪ {{ 'Sign out' if lang == 'en' else '退出登录' }}</button></form>
+    </div>
+    {% endif %}
+  </div>
 </aside>
 <main class="main-content">{% block content %}{% endblock %}</main>
 </div>
