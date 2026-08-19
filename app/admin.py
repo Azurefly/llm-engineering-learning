@@ -13,6 +13,7 @@ from .auth import (
     _validate_password,
     _validate_username,
     account_store,
+    registration_enabled,
 )
 from .exam_v2 import _lang, _nav
 
@@ -52,13 +53,7 @@ def account_page(request: Request):
     lang = _lang(request)
     fresh = account_store().get_user_by_id(int(current["id"])) or current
     c = _nav(request, lang)
-    c.update(
-        {
-            "account": fresh,
-            "status": request.query_params.get("status"),
-            "error": request.query_params.get("error"),
-        }
-    )
+    c.update({"account": fresh, "status": request.query_params.get("status"), "error": request.query_params.get("error")})
     return templates.TemplateResponse(request=request, name="account.html", context=c)
 
 
@@ -92,8 +87,6 @@ def account_password(
         account_store().change_password(int(current["id"]), current_password, new_password)
     except ValueError as exc:
         return _account_redirect(error=str(exc))
-    # Password changes invalidate every session for this account, including the
-    # current browser, so the new credential is required immediately.
     response = RedirectResponse("/login?changed=1", status_code=303)
     response.delete_cookie(SESSION_COOKIE, path="/")
     return response
@@ -109,7 +102,7 @@ def admin_users(request: Request):
             "users": account_store().list_users(),
             "admin_user": current,
             "roles": sorted(VALID_ROLES),
-            "registration_enabled": __import__("app.auth", fromlist=["registration_enabled"]).registration_enabled(),
+            "registration_enabled": registration_enabled(),
             "status": request.query_params.get("status"),
             "error": request.query_params.get("error"),
         }
@@ -145,12 +138,7 @@ def admin_create_user(
 
 
 @router.post("/admin/users/{user_id}/profile")
-def admin_update_profile(
-    request: Request,
-    user_id: int,
-    username: str = Form(...),
-    display_name: str = Form(""),
-):
+def admin_update_profile(request: Request, user_id: int, username: str = Form(...), display_name: str = Form("")):
     _admin(request)
     error = _validate_username(username)
     if error:
