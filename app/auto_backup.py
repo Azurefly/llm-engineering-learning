@@ -20,7 +20,7 @@ def maybe_create_auto_backup(db: Database, *, now: datetime | None = None) -> Pa
     if os.getenv("LLM_AUTO_BACKUP", "1").strip().lower() in {"0", "false", "no", "off"}:
         return None
     now = now or datetime.now(timezone.utc)
-    backup_dir = db.path.parent / "backups"
+    backup_dir = db.backup_dir
     backup_dir.mkdir(parents=True, exist_ok=True)
     files = sorted(backup_dir.glob("auto-*.json"), reverse=True)
     latest = _parse_stamp(files[0]) if files else None
@@ -31,7 +31,7 @@ def maybe_create_auto_backup(db: Database, *, now: datetime | None = None) -> Pa
     if latest and now - latest < timedelta(hours=interval_hours):
         return None
 
-    # Avoid creating meaningless files before the user has any learning data.
+    # Avoid creating meaningless files before the current user has any learning data.
     with db.connect() as conn:
         has_data = any(
             int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]) > 0
