@@ -22,8 +22,8 @@ def diagnostic_report() -> dict[str, Any]:
         busy_timeout = int(conn.execute("PRAGMA busy_timeout").fetchone()[0])
         tables = int(conn.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").fetchone()[0])
     bank = validate_question_bank()
-    data_dir = db.path.parent
-    backup_dir = data_dir / "backups"
+    active_path = db.active_path
+    backup_dir = db.backup_dir
     runner_mode = os.getenv("LLM_CODE_RUNNER", "disabled").strip().lower()
     report = {
         "ok": integrity.lower() == "ok" and bank["ok"],
@@ -31,9 +31,9 @@ def diagnostic_report() -> dict[str, Any]:
             "integrity": integrity,
             "journal_mode": journal_mode,
             "busy_timeout_ms": busy_timeout,
-            "size_bytes": db.path.stat().st_size if db.path.exists() else 0,
+            "size_bytes": active_path.stat().st_size if active_path.exists() else 0,
             "table_count": tables,
-            "path": str(db.path),
+            "path": str(active_path),
         },
         "question_bank": bank,
         "coding": {
