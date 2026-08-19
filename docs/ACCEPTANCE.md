@@ -7,6 +7,8 @@
 当前版本定位：
 
 - 多用户账号注册、登录、退出；
+- `superadmin` / `user` 两级账号角色；
+- 超级管理员账号管理与密码重置；
 - 每个用户学习数据物理隔离；
 - 本地优先；
 - Python 或 Docker 启动；
@@ -17,6 +19,8 @@
 Current scope:
 
 - multi-user registration/login/logout;
+- `superadmin` / `user` account roles;
+- superadmin account administration and password reset;
 - physically isolated learning data per account;
 - local first;
 - Python or Docker runtime;
@@ -24,7 +28,7 @@ Current scope:
 - bilingual curriculum;
 - an 18-week learning, assessment, and coding-practice system for LLM/RAG/Agent engineering.
 
-## 2. 身份与数据隔离 / Identity & Data Isolation
+## 2. 身份、管理权限与数据隔离 / Identity, Administration & Data Isolation
 
 验收要求：
 
@@ -33,12 +37,20 @@ Current scope:
 - 用户名唯一；
 - 密码不得明文存储；
 - Session 使用随机 Token，浏览器 Cookie 必须 `HttpOnly` + `SameSite=Lax`；
+- 全新系统第一个注册账号自动成为 `superadmin`；
+- 旧多用户账号库若不存在超级管理员，升级后最早账号自动获得 `superadmin`；
+- 普通 `user` 访问 `/admin/users` 必须返回 403；
+- 超级管理员可创建账号、修改用户名/显示名、启停账号、管理角色、重置其他用户密码；
+- 密码重置与账号停用必须立即撤销目标用户现有 Session；
+- 当前超级管理员不能停用或降低自己的角色，系统必须始终保留至少一个启用的超级管理员；
+- 所有用户可在 `/account` 修改自己的账号信息和密码；自助改密后必须注销全部现有 Session；
 - `accounts.db` 与学习数据分离；
 - 每个用户使用独立 `users/<storage_key>/learning.db`；
+- 超级管理员权限不包含跨用户读取学习数据库；
 - 不同用户的课程进度、考试、错题、代码实训、思考、外链、能力画像、自适应会话、备份互不可见；
 - 第一个注册用户必须能够自动继承旧版单用户 `data/learning.db`；
 - 后续新用户必须从空白独立数据库开始；
-- 关闭注册后已有账号仍可登录。
+- 关闭注册后已有账号仍可登录，超级管理员仍可从管理页创建账号。
 
 ## 3. 学习闭环 / Learning Loop
 
@@ -132,6 +144,9 @@ Current scope:
 - 安全响应头；
 - 密码使用带随机 Salt 的强哈希；
 - Session Token 数据库只保存摘要；
+- 超级管理员路由必须进行服务端角色校验，而非只隐藏菜单；
+- 管理员重置密码/停用账号必须撤销目标 Session；
+- 管理员界面不得暴露其他用户学习数据；
 - Docker `cap_drop: ALL`；
 - Docker `no-new-privileges`；
 - 代码执行默认关闭。
@@ -143,10 +158,11 @@ Current scope:
 - 稳定入口 `app.current:app`；
 - 历史 `main_v*.py` 不参与正式启动链；
 - 用户数据库 schema 可在登录后自动创建/升级；
+- `accounts.db` 可自动迁移 `role` 字段和超级管理员；
 - 已验证直接依赖固定版本；
 - Dependabot 定期提出升级；
 - 系统诊断页面与 API；
-- README / APP / MULTI_USER / V5 中英文说明与真实行为一致。
+- README / APP / MULTI_USER / ADMIN / V5 中英文说明与真实行为一致。
 
 ## 10. CI 发布门禁 / CI Release Gate
 
@@ -158,9 +174,13 @@ Current scope:
 4. 注册、错误密码、Session、关闭注册测试；
 5. 两用户物理数据库隔离测试；
 6. 首用户旧单用户数据迁移测试；
-7. 真实 Docker Coding Sandbox Smoke Test；
-8. 完整 Docker Compose Smoke Test，包括注册、带 Session 访问、SQLite 写入、容器重启、Session 与用户数据持久化验证；
-9. `pip check` 依赖一致性验证。
+7. 首账号超级管理员、旧账号库角色迁移测试；
+8. 普通用户访问超级管理员接口 403 测试；
+9. 管理员修改注册信息、启停账号、角色保护、密码重置与 Session 撤销测试；
+10. 用户自助改密与 Session 撤销测试；
+11. 真实 Docker Coding Sandbox Smoke Test；
+12. 完整 Docker Compose Smoke Test，包括注册首个超级管理员、管理员页面、普通用户 403、用户隔离、SQLite 写入、容器重启、Session 与用户数据持久化验证；
+13. `pip check` 依赖一致性验证。
 
 任何一项失败，都不应视为当前版本完成。
 
@@ -169,9 +189,9 @@ Current scope:
 以下能力如果未来需要，应作为新需求单独设计：
 
 - 组织 / 租户层级；
-- 管理员后台、用户禁用与密码重置流程；
-- RBAC 角色与细粒度权限；
-- 邮箱验证、OAuth/OIDC/企业 SSO；
+- 超出 `superadmin/user` 两级模型的细粒度 RBAC；
+- 用户硬删除、数据保留期限与审计审批工作流；
+- 邮箱验证、找回密码邮件、OAuth/OIDC/企业 SSO；
 - 云端同步和多设备实时协作；
 - LMS/SCORM/xAPI 等教育平台标准集成；
 - 原生 iOS / Android 客户端；
