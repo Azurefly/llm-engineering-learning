@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="{{ 'en' if lang == 'en' else 'zh-CN' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ 'Login · LLM Engineering Learning' if lang == 'en' else '登录 · LLM 工程学习台' }}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/auth.css">
+</head>
+<body class="auth-body">
+  <main class="auth-shell">
+    <section class="auth-brand-panel">
+      <div class="brand-mark auth-brand-mark">LLM</div>
+      <div class="eyebrow">LLM ENGINEERING</div>
+      <h1>{{ 'Learn. Test. Improve.' if lang == 'en' else '学习 · 考试 · 进步' }}</h1>
+      <p>{{ 'A local-first engineering learning workspace with system-graded exams and isolated personal data.' if lang == 'en' else '本地优先的大模型工程学习工作区，系统自动评分，每个用户拥有独立学习数据。' }}</p>
+      <div class="auth-feature-list">
+        <span>✓ {{ 'Private learning database per user' if lang == 'en' else '每个用户独立学习数据库' }}</span>
+        <span>✓ {{ 'System-graded exams and coding labs' if lang == 'en' else '系统评分考试与代码实训' }}</span>
+        <span>✓ {{ 'Notes, resources, progress and backups' if lang == 'en' else '笔记、资料、进度和备份独立保存' }}</span>
+      </div>
+    </section>
+    <section class="auth-card">
+      <div class="auth-card-head">
+        <h2>{{ 'Welcome back' if lang == 'en' else '登录学习台' }}</h2>
+        <p>{{ 'Sign in to continue your learning path.' if lang == 'en' else '登录后继续你的学习进度。' }}</p>
+      </div>
+      {% if error %}<div class="auth-error">{{ error }}</div>{% endif %}
+      <form method="post" action="/login" class="auth-form">
+        <input type="hidden" name="next" value="{{ request.query_params.get('next', '/') }}">
+        <label>{{ 'Username' if lang == 'en' else '用户名' }}
+          <input name="username" value="{{ username }}" autocomplete="username" maxlength="32" required autofocus>
+        </label>
+        <label>{{ 'Password' if lang == 'en' else '密码' }}
+          <input name="password" type="password" autocomplete="current-password" maxlength="128" required>
+        </label>
+        <button class="btn btn-primary auth-submit" type="submit">{{ 'Sign in' if lang == 'en' else '登录' }}</button>
+      </form>
+      {% if registration_enabled %}
+      <p class="auth-switch">{{ 'New here?' if lang == 'en' else '还没有账号？' }} <a href="/register">{{ 'Create account' if lang == 'en' else '注册账号' }}</a></p>
+      {% endif %}
+      <div class="auth-language"><a href="/language/zh-CN?next=/login">中文</a><span>·</span><a href="/language/en?next=/login">English</a></div>
+    </section>
+  </main>
+</body>
+</html>
