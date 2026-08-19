@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="{{ 'en' if lang == 'en' else 'zh-CN' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ 'Register · LLM Engineering Learning' if lang == 'en' else '注册 · LLM 工程学习台' }}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/auth.css">
+</head>
+<body class="auth-body">
+  <main class="auth-shell">
+    <section class="auth-brand-panel">
+      <div class="brand-mark auth-brand-mark">LLM</div>
+      <div class="eyebrow">PRIVATE LEARNING SPACE</div>
+      <h1>{{ 'Create your learning space' if lang == 'en' else '创建你的独立学习空间' }}</h1>
+      <p>{{ 'Each account receives a physically isolated SQLite learning database and independent backups.' if lang == 'en' else '每个账号都会拥有物理隔离的 SQLite 学习数据库和独立备份目录。' }}</p>
+      <div class="auth-feature-list">
+        <span>✓ {{ 'Progress and exam history are isolated' if lang == 'en' else '学习进度与考试记录隔离' }}</span>
+        <span>✓ {{ 'Thoughts and resources are private' if lang == 'en' else '个人思考与外链资料隔离' }}</span>
+        <span>✓ {{ 'Adaptive mastery data never mixes users' if lang == 'en' else '能力画像与自适应数据不会串用户' }}</span>
+      </div>
+    </section>
+    <section class="auth-card">
+      <div class="auth-card-head">
+        <h2>{{ 'Create account' if lang == 'en' else '注册账号' }}</h2>
+        <p>{{ 'Use a login name and a password of at least 8 characters.' if lang == 'en' else '设置登录用户名和至少 8 位密码。' }}</p>
+      </div>
+      {% if not registration_enabled %}
+        <div class="auth-error">{{ 'Registration is disabled by the administrator.' if lang == 'en' else '当前已关闭自主注册，请联系管理员创建账号。' }}</div>
+        <a class="btn auth-submit" href="/login">{{ 'Back to login' if lang == 'en' else '返回登录' }}</a>
+      {% else %}
+        {% if error %}<div class="auth-error">{{ error }}</div>{% endif %}
+        <form method="post" action="/register" class="auth-form">
+          <label>{{ 'Username' if lang == 'en' else '用户名' }}
+            <input name="username" value="{{ username }}" autocomplete="username" minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]{3,32}" required autofocus>
+            <small>{{ 'Letters, digits, dot, underscore and hyphen.' if lang == 'en' else '支持字母、数字、点、下划线和连字符。' }}</small>
+          </label>
+          <label>{{ 'Display name' if lang == 'en' else '显示名称' }}
+            <input name="display_name" value="{{ display_name }}" maxlength="64" autocomplete="nickname" placeholder="{{ 'Optional' if lang == 'en' else '可选，可填写中文名' }}">
+          </label>
+          <label>{{ 'Password' if lang == 'en' else '密码' }}
+            <input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+          </label>
+          <label>{{ 'Confirm password' if lang == 'en' else '确认密码' }}
+            <input name="password_confirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+          </label>
+          <button class="btn btn-primary auth-submit" type="submit">{{ 'Create account' if lang == 'en' else '注册并进入学习台' }}</button>
+        </form>
+        <p class="auth-switch">{{ 'Already registered?' if lang == 'en' else '已有账号？' }} <a href="/login">{{ 'Sign in' if lang == 'en' else '直接登录' }}</a></p>
+      {% endif %}
+      <div class="auth-language"><a href="/language/zh-CN?next=/register">中文</a><span>·</span><a href="/language/en?next=/register">English</a></div>
+    </section>
+  </main>
+</body>
+</html>
