@@ -14,6 +14,7 @@ from . import exam_v2 as exam_v2_module
 from . import exam_v3 as exam_v3_module
 from .adaptive import router as adaptive_router
 from .adaptive_v5 import router as adaptive_v5_router
+from .admin import router as admin_router
 from .auth import install_auth, router as auth_router
 from .auto_backup import maybe_create_auto_backup
 from .code_exam import router as code_exam_router
@@ -35,6 +36,7 @@ grading_v5.install()
 # Ordering is intentional: V3 overrides compatible timed V2 paths, while the V2
 # result/history routes remain available. All other feature routers are distinct.
 app.include_router(auth_router)
+app.include_router(admin_router)
 app.include_router(exam_v3_router)
 app.include_router(code_exam_router)
 app.include_router(exam_v2_router)
