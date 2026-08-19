@@ -76,7 +76,7 @@ jobs:
           docker compose ps
           docker compose logs
           exit 1
-      - name: Register smoke user
+      - name: Register smoke superadmin
         run: |
           curl -fsS -c cookies.txt -b cookies.txt -X POST http://127.0.0.1:8765/register \
             --data-urlencode 'username=ciuser' \
@@ -84,6 +84,7 @@ jobs:
             --data-urlencode 'password=ci-password-123' \
             --data-urlencode 'password_confirm=ci-password-123' \
             -o /dev/null
+          curl -fsS -b cookies.txt http://127.0.0.1:8765/admin/users | grep -q 'SUPERADMIN'
       - name: Smoke authenticated feature routes
         run: |
           curl -fsS -b cookies.txt http://127.0.0.1:8765/ | grep -q '考试中心\|Exam Center'
@@ -91,6 +92,7 @@ jobs:
           curl -fsS -b cookies.txt http://127.0.0.1:8765/adaptive-test >/dev/null
           curl -fsS -b cookies.txt 'http://127.0.0.1:8765/search?q=Transformer' >/dev/null
           curl -fsS -b cookies.txt http://127.0.0.1:8765/api/diagnostics >/dev/null
+          curl -fsS -b cookies.txt http://127.0.0.1:8765/account >/dev/null
       - name: Verify user SQLite and session persistence across container restart
         run: |
           curl -fsS -b cookies.txt -X POST http://127.0.0.1:8765/thoughts/save \
@@ -107,7 +109,8 @@ jobs:
             sleep 1
           done
           curl -fsS -b cookies.txt 'http://127.0.0.1:8765/search?q=multi-user-persistence-987654' | grep -q 'CI Docker persistence probe'
-      - name: Verify second user cannot see first user data
+          curl -fsS -b cookies.txt http://127.0.0.1:8765/admin/users | grep -q 'SUPERADMIN'
+      - name: Verify second user isolation and admin denial
         run: |
           curl -fsS -c cookies2.txt -b cookies2.txt -X POST http://127.0.0.1:8765/register \
             --data-urlencode 'username=ciuser2' \
@@ -119,6 +122,8 @@ jobs:
             echo 'Cross-user data leak detected'
             exit 1
           fi
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -b cookies2.txt http://127.0.0.1:8765/admin/users)
+          test "$status" = "403"
           curl -fsS -b cookies.txt 'http://127.0.0.1:8765/search?q=multi-user-persistence-987654' | grep -q 'CI Docker persistence probe'
       - name: Container status
         run: docker compose ps
@@ -143,7 +148,7 @@ jobs:
           description="One or more CI gates failed"
           if [ "$TEST_RESULT" = "success" ] && [ "$SANDBOX_RESULT" = "success" ] && [ "$DOCKER_RESULT" = "success" ]; then
             state=success
-            description="Cross-platform tests, sandbox and Docker isolation passed"
+            description="Cross-platform tests, sandbox, Docker isolation and admin permissions passed"
           fi
           if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             curl -fsS -X POST \
