@@ -2,7 +2,7 @@
 
 [中文](#中文) · [English](#english)
 
-> 18 周 LLM / RAG / Agent 工程学习路线 + 本地学习、系统考试、代码实训、自适应测试与知识记录应用。
+> 18 周 LLM / RAG / Agent 工程学习路线 + 多用户本地学习、系统考试、代码实训、自适应测试与知识记录应用。
 
 ## Local Learning App / 本地学习应用
 
@@ -10,7 +10,9 @@
 
 核心能力：
 
-- 中英文课程切换，学习进度跨语言共享。
+- **多用户注册 / 登录 / 退出**；每个账号使用独立 SQLite 学习数据库，用户之间数据物理隔离。
+- 默认允许自主注册，可通过 `LLM_ALLOW_REGISTRATION=0` 关闭新用户注册。
+- 中英文课程切换，同一用户的学习进度跨语言共享。
 - 阅读进度记录；手工进度最高 99%，**考试成绩禁止手工录入**。
 - 系统考试：随机组卷、Easy / Medium / Hard、知识点标签、倒计时、自动保存、超时交卷、系统评分、成绩单与重考。
 - 单选、多选、判断、填空确定性评分；简答题按照 Rubric 自动给部分分。
@@ -20,17 +22,50 @@
 - **V5 逐题自适应测试（CAT）**：每答一题再根据当前掌握度、难度、刚才的表现和历史曝光次数选择下一题。
 - 进行中的自适应测试可恢复/放弃，题目在选中时即冻结快照。
 - 约 **190+ 工程学习题**；Week 0～18 均包含基础、理解、工程场景/排障和设计类问题，并有 CI 题库质量门禁。
+- Week 2～18 每周至少一个 pytest 系统评分代码实训。
 - 历史试卷完整冻结题目快照，未来更新题库不会改变旧成绩单含义。
 - Markdown 个人思考、标签和课程关联。
 - 外部学习链接库：论文、教程、视频、博客、GitHub 项目等。
-- 全局搜索：课程 Markdown + 个人思考 + 外部链接。
+- 全局搜索：课程 Markdown + 当前用户个人思考 + 当前用户外部链接。
 - SQLite 本地持久化，WAL + busy timeout，无需额外数据库。
-- 完整 JSON 备份与校验恢复，恢复前自动安全快照。
-- 启动时滚动自动备份，默认 24 小时一次、保留 10 份。
+- **每个用户独立** JSON 备份、恢复前安全快照与滚动自动备份。
 - 系统诊断页：SQLite integrity、题库质量、Code Runner、备份状态。
-- Trusted Host、跨站写请求防护和安全响应头。
+- Trusted Host、跨站写请求防护、安全响应头、HttpOnly Session Cookie。
 - Python 直接启动和加固后的 Docker Compose 启动。
-- GitHub Actions 三层验证：跨平台 pytest、代码沙箱 Smoke Test、最终 Docker Compose Smoke Test。
+- GitHub Actions 验证：跨平台 pytest、注册/隔离测试、代码沙箱 Smoke Test、Docker 登录与持久化 Smoke Test。
+
+### 注册与数据隔离
+
+默认开启自主注册：
+
+```text
+LLM_ALLOW_REGISTRATION=1
+```
+
+如需关闭新账号注册：
+
+```text
+LLM_ALLOW_REGISTRATION=0
+```
+
+数据结构：
+
+```text
+data/
+├─ accounts.db
+└─ users/
+   ├─ <storage-key-A>/learning.db
+   └─ <storage-key-B>/learning.db
+```
+
+`accounts.db` 仅保存账号和 Session；课程进度、考试、错题、代码实训、思考、外链、能力画像、自适应测试和备份全部位于各用户自己的目录中。
+
+从旧单用户版本升级时，如果 `data/learning.db` 已经存在学习数据，**第一个成功注册的账号会自动复制并继承这些历史数据**，原文件不会自动删除。
+
+详细说明：
+
+- [多用户、注册与数据隔离（中文）](docs/MULTI_USER.md)
+- [Multi-User Registration & Data Isolation](docs/MULTI_USER.en.md)
 
 ### Python
 
@@ -46,7 +81,17 @@ python run.py
 
 打开：`http://127.0.0.1:8765`
 
-Python 模式的数据文件位于 `data/learning.db`。开发/主动测试新版依赖时，也可以使用 `requirements.txt` 的兼容范围。
+Python 模式中：
+
+```text
+data/accounts.db
+# 账号 / Session
+
+data/users/<storage-key>/learning.db
+# 各用户独立学习数据
+```
+
+开发/主动测试新版依赖时，也可以使用 `requirements.txt` 的兼容范围。
 
 ### Docker Compose
 
@@ -56,7 +101,7 @@ docker compose up -d --build
 
 打开：`http://127.0.0.1:8765`
 
-Docker 默认使用 named volume `llm-engineering-learning-data` 保存 `/data/learning.db`，避免 Linux / macOS / Windows 上 bind mount 的 UID/权限差异。`docker compose down` 不会删除数据；只有显式执行 `docker compose down -v` 才会删除该 volume。需要迁移或查看学习数据时，优先使用应用内“数据与备份”的 JSON 导出/恢复功能。
+Docker 默认使用 named volume `llm-engineering-learning-data` 保存整个 `/data`：账号库位于 `/data/accounts.db`，各用户学习数据位于 `/data/users/<storage-key>/learning.db`。`docker compose down` 不会删除数据；只有显式执行 `docker compose down -v` 才会删除整个 volume，包括**所有用户账号与学习记录**。
 
 Compose 只映射宿主机 `127.0.0.1:8765`，并保留 Linux capabilities 全移除、`no-new-privileges`、受限 `/tmp` 与应用健康检查。
 
@@ -64,6 +109,8 @@ Compose 只映射宿主机 `127.0.0.1:8765`，并保留 Linux capabilities 全�
 
 | 功能 | 地址 |
 |---|---|
+| 登录 | `/login` |
+| 注册 | `/register` |
 | 学习总览 | `/` |
 | 自适应学习画像 | `/adaptive` |
 | 逐题自适应测试 | `/adaptive-test` |
@@ -81,6 +128,8 @@ Compose 只映射宿主机 `127.0.0.1:8765`，并保留 Linux capabilities 全�
 
 - [中文应用文档](docs/APP.md)
 - [English App Guide](docs/APP.en.md)
+- [多用户、注册与数据隔离](docs/MULTI_USER.md)
+- [Multi-User Registration & Data Isolation](docs/MULTI_USER.en.md)
 - [V3：计时考试与代码实训](docs/V3.md)
 - [V3: Timed Exams & Coding Labs](docs/V3.en.md)
 - [V4：自适应学习与能力画像](docs/V4.md)
@@ -144,7 +193,7 @@ Coding Agent
 
 A systematic engineering-oriented curriculum for LLMs, RAG, agents, evaluation, deployment, and AI coding systems.
 
-The local-first application provides system-graded randomized and timed exams, coding labs, mastery analytics, sequential adaptive testing, notes/resources, global search, reproducible backups, and deployment diagnostics. Scores and mastery cannot be self-entered.
+The local-first application supports multi-user registration/login with physically isolated per-user SQLite learning databases, system-graded randomized and timed exams, coding labs, mastery analytics, sequential adaptive testing, notes/resources, global search, per-user backups, and deployment diagnostics. Scores and mastery cannot be self-entered.
 
 ## English Entry Points
 
