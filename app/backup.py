@@ -40,7 +40,11 @@ def _table_payload(db: Database) -> dict[str, list[dict[str, Any]]]:
 
 
 def export_all_json(db: Database) -> str:
-    """Export all learning data while preserving the original top-level table shape."""
+    """Export only the active user's learning database.
+
+    Authentication accounts/sessions intentionally live in a separate accounts.db and
+    are never included in a learning backup.
+    """
     payload: dict[str, Any] = _table_payload(db)
     payload["_meta"] = {
         "format": "llm-engineering-learning-backup",
@@ -116,7 +120,7 @@ def parse_backup_json(text: str) -> dict[str, list[dict[str, Any]]]:
 
 
 def write_safety_snapshot(db: Database) -> Path:
-    backup_dir = db.path.parent / "backups"
+    backup_dir = db.backup_dir
     backup_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     path = backup_dir / f"pre-restore-{stamp}.json"
