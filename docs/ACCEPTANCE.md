@@ -1,12 +1,13 @@
 # 当前版本验收边界 / Current Release Acceptance Boundary
 
-本文定义 `llm-engineering-learning` 当前单用户、本地优先版本的完成标准。达到这些条件后，后续新增能力应视为**新范围 / 新产品需求**，而不是当前版本遗留优化。
+本文定义 `llm-engineering-learning` 当前**多用户、本地优先**版本的完成标准。达到这些条件后，后续新增能力应视为新范围，而不是当前版本遗留优化。
 
 ## 1. 产品范围 / Product Scope
 
 当前版本定位：
 
-- 单用户；
+- 多用户账号注册、登录、退出；
+- 每个用户学习数据物理隔离；
 - 本地优先；
 - Python 或 Docker 启动；
 - SQLite 持久化；
@@ -15,14 +16,31 @@
 
 Current scope:
 
-- single user;
+- multi-user registration/login/logout;
+- physically isolated learning data per account;
 - local first;
 - Python or Docker runtime;
 - SQLite persistence;
 - bilingual curriculum;
 - an 18-week learning, assessment, and coding-practice system for LLM/RAG/Agent engineering.
 
-## 2. 学习闭环 / Learning Loop
+## 2. 身份与数据隔离 / Identity & Data Isolation
+
+验收要求：
+
+- 未登录用户不能访问学习数据页面与写接口；
+- 默认支持自主注册，可通过 `LLM_ALLOW_REGISTRATION=0` 关闭；
+- 用户名唯一；
+- 密码不得明文存储；
+- Session 使用随机 Token，浏览器 Cookie 必须 `HttpOnly` + `SameSite=Lax`；
+- `accounts.db` 与学习数据分离；
+- 每个用户使用独立 `users/<storage_key>/learning.db`；
+- 不同用户的课程进度、考试、错题、代码实训、思考、外链、能力画像、自适应会话、备份互不可见；
+- 第一个注册用户必须能够自动继承旧版单用户 `data/learning.db`；
+- 后续新用户必须从空白独立数据库开始；
+- 关闭注册后已有账号仍可登录。
+
+## 3. 学习闭环 / Learning Loop
 
 验收要求：
 
@@ -45,7 +63,7 @@ Current scope:
 - Week 2～18 每周代码实训；
 - 错题本与阶段考试。
 
-## 3. 评分可信性 / Grading Integrity
+## 4. 评分可信性 / Grading Integrity
 
 当前版本必须满足：
 
@@ -57,7 +75,7 @@ Current scope:
 - 历史试卷冻结完整题目快照；
 - CAT 同一作答只计算一次曝光。
 
-## 4. 题库 / Question Bank
+## 5. 题库 / Question Bank
 
 当前验收基线：
 
@@ -72,7 +90,7 @@ Current scope:
 
 继续扩充到数千题属于内容规模扩展，不是当前版本缺陷。
 
-## 5. 代码实训 / Coding Labs
+## 6. 代码实训 / Coding Labs
 
 当前验收基线：
 
@@ -84,7 +102,7 @@ Current scope:
 - 无网络、资源限制、非 root、只读题目工作区、能力移除；
 - CI 必须真实构建沙箱并完成 pytest 自动评分 Smoke Test。
 
-## 6. 数据可靠性 / Data Reliability
+## 7. 数据可靠性 / Data Reliability
 
 当前验收基线：
 
@@ -93,15 +111,15 @@ Current scope:
 - 外键开启；
 - Python 模式本地 `data/` 不进入 Git；
 - Docker 使用 permission-safe named volume；
-- Docker 容器重启后学习数据仍存在；
-- 完整 JSON 导出；
+- Docker 容器重启后账号、Session 与学习数据仍存在；
+- 每个用户独立 JSON 导出；
+- 每个用户独立恢复前安全快照与滚动自动备份；
+- 备份不包含其他用户和认证账号数据；
 - 备份格式校验；
 - 恢复前显式确认；
-- 恢复前安全快照；
-- 事务恢复与失败回滚；
-- 启动滚动自动备份。
+- 事务恢复与失败回滚。
 
-## 7. 本地安全边界 / Local Security Boundary
+## 8. 本地安全边界 / Local Security Boundary
 
 当前验收基线：
 
@@ -112,40 +130,48 @@ Current scope:
 - 外链仅 HTTP(S)；
 - 恢复数据同样执行 URL 与关键范围校验；
 - 安全响应头；
+- 密码使用带随机 Salt 的强哈希；
+- Session Token 数据库只保存摘要；
 - Docker `cap_drop: ALL`；
 - Docker `no-new-privileges`；
 - 代码执行默认关闭。
 
-## 8. 可维护性 / Maintainability
+## 9. 可维护性 / Maintainability
 
 当前验收基线：
 
 - 稳定入口 `app.current:app`；
 - 历史 `main_v*.py` 不参与正式启动链；
+- 用户数据库 schema 可在登录后自动创建/升级；
 - 已验证直接依赖固定版本；
 - Dependabot 定期提出升级；
 - 系统诊断页面与 API；
-- README / APP / V5 中英文说明与真实行为一致。
+- README / APP / MULTI_USER / V5 中英文说明与真实行为一致。
 
-## 9. CI 发布门禁 / CI Release Gate
+## 10. CI 发布门禁 / CI Release Gate
 
 `main` 应同时通过：
 
 1. Ubuntu + Python 3.11 完整 pytest；
 2. Ubuntu + Python 3.12 完整 pytest；
 3. Windows + Python 3.12 完整 pytest；
-4. 真实 Docker Coding Sandbox Smoke Test；
-5. 完整 Docker Compose Smoke Test，包括：启动、主要页面、诊断、SQLite 写入、容器重启、数据持久化验证；
-6. `pip check` 依赖一致性验证。
+4. 注册、错误密码、Session、关闭注册测试；
+5. 两用户物理数据库隔离测试；
+6. 首用户旧单用户数据迁移测试；
+7. 真实 Docker Coding Sandbox Smoke Test；
+8. 完整 Docker Compose Smoke Test，包括注册、带 Session 访问、SQLite 写入、容器重启、Session 与用户数据持久化验证；
+9. `pip check` 依赖一致性验证。
 
 任何一项失败，都不应视为当前版本完成。
 
-## 10. 明确属于新范围的能力 / Explicit Future Scope
+## 11. 明确属于新范围的能力 / Explicit Future Scope
 
-以下能力如果未来需要，应作为新需求单独设计，不应被解释为当前版本“尚未优化完”：
+以下能力如果未来需要，应作为新需求单独设计：
 
-- 多用户、组织、角色和权限系统；
-- 公网账号登录与身份认证；
+- 组织 / 租户层级；
+- 管理员后台、用户禁用与密码重置流程；
+- RBAC 角色与细粒度权限；
+- 邮箱验证、OAuth/OIDC/企业 SSO；
 - 云端同步和多设备实时协作；
 - LMS/SCORM/xAPI 等教育平台标准集成；
 - 原生 iOS / Android 客户端；
@@ -154,8 +180,8 @@ Current scope:
 - 基于大规模真实考生数据的 IRT/心理测量标定；
 - 教师端题库编辑、班级、作业和运营后台。
 
-这些都是有效的产品扩展方向，但会改变当前“个人、本地、工程学习工具”的产品边界。
+这些都是有效的产品扩展方向，但不属于当前“多用户、本地优先、工程学习系统”的基础完成条件。
 
 ## 完成定义 / Definition of Done
 
-当本文件第 2～9 节全部满足，并且最新 `main` CI 全绿时，当前产品范围内不再保留已知的高价值优化项；之后的工作应以新需求、新课程内容或新部署范围立项。
+当本文件第 2～10 节全部满足，并且最新 `main` CI 全绿时，当前产品范围内可视为完成；之后的工作应以新需求、新课程内容或新部署范围立项。
