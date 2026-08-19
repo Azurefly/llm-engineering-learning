@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ 'User Administration' if lang == 'en' else '用户管理' }} · {{ t('app_name') }}{% endblock %}
+{% block content %}
+<div class="adaptive-page admin-page">
+  <section class="adaptive-hero">
+    <div>
+      <div class="adaptive-eyebrow">SUPERADMIN</div>
+      <h1>{{ 'User Administration' if lang == 'en' else '用户管理' }}</h1>
+      <p>{{ 'Manage account registration metadata, roles, account status and password resets. Learning databases remain private.' if lang == 'en' else '管理账号注册信息、角色、启停状态和密码重置；不会读取其他用户的学习数据库。' }}</p>
+    </div>
+    <a class="adaptive-btn" href="/account">{{ 'My account' if lang == 'en' else '我的账号' }}</a>
+  </section>
+
+  {% if error %}<div class="admin-alert error">{{ error }}</div>{% endif %}
+  {% if status %}
+    <div class="admin-alert success">✓
+      {% if lang == 'en' %}
+        {% if status == 'created' %}User created.{% elif status == 'updated' %}User profile updated.{% elif status == 'status-updated' %}Account status updated.{% elif status == 'role-updated' %}User role updated.{% elif status == 'password-reset' %}Password reset and active sessions revoked.{% else %}Operation completed.{% endif %}
+      {% else %}
+        {% if status == 'created' %}用户已创建。{% elif status == 'updated' %}用户注册信息已更新。{% elif status == 'status-updated' %}账号状态已更新。{% elif status == 'role-updated' %}用户角色已更新。{% elif status == 'password-reset' %}密码已重置，原有登录 Session 已全部失效。{% else %}操作完成。{% endif %}
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <section class="adaptive-card admin-create-card">
+    <div class="adaptive-card-head">
+      <div><span class="section-kicker">CREATE USER</span><h2>{{ 'Create an account' if lang == 'en' else '管理员创建账号' }}</h2></div>
+      <span class="admin-registration-state {{ 'on' if registration_enabled else 'off' }}">{{ ('PUBLIC REGISTRATION ON' if registration_enabled else 'PUBLIC REGISTRATION OFF') if lang == 'en' else ('自主注册已开启' if registration_enabled else '自主注册已关闭') }}</span>
+    </div>
+    <p>{{ 'Superadmins can create accounts even when public registration is disabled.' if lang == 'en' else '即使关闭自主注册，超级管理员仍然可以在这里创建新账号。' }}</p>
+    <form method="post" action="/admin/users/create" class="admin-create-grid">
+      <label>{{ 'Username' if lang == 'en' else '用户名' }}<input name="username" minlength="3" maxlength="32" required></label>
+      <label>{{ 'Display name' if lang == 'en' else '显示名称' }}<input name="display_name" maxlength="64"></label>
+      <label>{{ 'Initial password' if lang == 'en' else '初始密码' }}<input name="password" type="password" minlength="8" maxlength="128" required></label>
+      <label>{{ 'Confirm password' if lang == 'en' else '确认密码' }}<input name="password_confirm" type="password" minlength="8" maxlength="128" required></label>
+      <label>{{ 'Role' if lang == 'en' else '角色' }}<select name="role"><option value="user">USER</option><option value="superadmin">SUPERADMIN</option></select></label>
+      <button class="adaptive-btn primary" type="submit">{{ 'Create user' if lang == 'en' else '创建用户' }}</button>
+    </form>
+  </section>
+
+  <section class="admin-user-list">
+    {% for user in users %}
+      <article class="adaptive-card admin-user-card {% if not user.is_active %}disabled{% endif %}">
+        <div class="admin-user-head">
+          <div class="admin-user-identity">
+            <div class="sidebar-avatar admin-avatar">{{ (user.display_name or user.username)[:1]|upper }}</div>
+            <div>
+              <div class="admin-user-title"><strong>{{ user.display_name }}</strong><span>@{{ user.username }}</span></div>
+              <div class="admin-user-badges"><span class="admin-role {{ user.role }}">{{ user.role|upper }}</span><span class="admin-status {{ 'active' if user.is_active else 'inactive' }}">{{ 'ACTIVE' if user.is_active else 'DISABLED' }}</span>{% if user.id == admin_user.id %}<span class="admin-self">{{ 'YOU' if lang == 'en' else '当前账号' }}</span>{% endif %}</div>
+            </div>
+          </div>
+          <div class="admin-user-meta"><span>ID {{ user.id }}</span><span>{{ 'Sessions' if lang == 'en' else '有效会话' }} {{ user.active_sessions }}</span></div>
+        </div>
+
+        <div class="admin-user-grid">
+          <form method="post" action="/admin/users/{{ user.id }}/profile" class="admin-form compact">
+            <h3>{{ 'Registration info' if lang == 'en' else '注册信息' }}</h3>
+            <label>{{ 'Username' if lang == 'en' else '用户名' }}<input name="username" value="{{ user.username }}" minlength="3" maxlength="32" required></label>
+            <label>{{ 'Display name' if lang == 'en' else '显示名称' }}<input name="display_name" value="{{ user.display_name }}" maxlength="64"></label>
+            <div class="admin-small-meta"><span>{{ 'Created' if lang == 'en' else '注册' }}：{{ user.created_at }}</span><span>{{ 'Last login' if lang == 'en' else '最近登录' }}：{{ user.last_login_at or '-' }}</span></div>
+            <button class="adaptive-btn small" type="submit">{{ 'Save info' if lang == 'en' else '保存信息' }}</button>
+          </form>
+
+          <div class="admin-control-stack">
+            <form method="post" action="/admin/users/{{ user.id }}/role" class="admin-inline-form">
+              <label>{{ 'Role' if lang == 'en' else '角色' }}<select name="role" {% if user.id == admin_user.id %}disabled{% endif %}><option value="user" {% if user.role == 'user' %}selected{% endif %}>USER</option><option value="superadmin" {% if user.role == 'superadmin' %}selected{% endif %}>SUPERADMIN</option></select></label>
+              {% if user.id != admin_user.id %}<button class="adaptive-btn small" type="submit">{{ 'Update role' if lang == 'en' else '修改角色' }}</button>{% endif %}
+            </form>
+
+            <form method="post" action="/admin/users/{{ user.id }}/status" class="admin-inline-form">
+              <input type="hidden" name="action" value="{{ 'disable' if user.is_active else 'enable' }}">
+              {% if user.id == admin_user.id %}
+                <span class="admin-protected">{{ 'Your own account cannot be disabled here.' if lang == 'en' else '不能在这里停用自己的超级管理员账号。' }}</span>
+              {% else %}
+                <button class="adaptive-btn small {% if user.is_active %}danger{% endif %}" type="submit">{{ ('Disable account' if user.is_active else 'Enable account') if lang == 'en' else ('停用账号' if user.is_active else '启用账号') }}</button>
+              {% endif %}
+            </form>
+
+            {% if user.id != admin_user.id %}
+            <form method="post" action="/admin/users/{{ user.id }}/password" class="admin-form compact password-reset-form">
+              <h3>{{ 'Reset password' if lang == 'en' else '重置密码' }}</h3>
+              <label>{{ 'New password' if lang == 'en' else '新密码' }}<input name="new_password" type="password" minlength="8" maxlength="128" required></label>
+              <label>{{ 'Confirm' if lang == 'en' else '确认新密码' }}<input name="new_password_confirm" type="password" minlength="8" maxlength="128" required></label>
+              <button class="adaptive-btn small" type="submit">{{ 'Reset & revoke sessions' if lang == 'en' else '重置并退出该用户全部会话' }}</button>
+            </form>
+            {% else %}
+            <div class="admin-protected-box">{{ 'Change your own password from My Account.' if lang == 'en' else '你自己的密码请在“我的账号”中修改。' }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}
