@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.auth import account_store, hash_password, verify_password
 from app.current import app
+from app.db import Database
 
 
 def test_password_hash_is_salted_and_verifiable():
@@ -102,6 +103,45 @@ def test_registration_login_and_physical_user_isolation(monkeypatch, tmp_path):
     alice_page = client.get("/thoughts")
     assert "Alice private note" in alice_page.text
     assert "Bob private note" not in alice_page.text
+
+
+def test_first_registered_user_claims_legacy_single_user_data(monkeypatch, tmp_path):
+    monkeypatch.setenv("LLM_AUTH_TEST_BYPASS", "0")
+    monkeypatch.setenv("LLM_ALLOW_REGISTRATION", "1")
+    monkeypatch.setenv("LLM_LEARNING_DATA_DIR", str(tmp_path / "migration"))
+    legacy_dir = tmp_path / "migration"
+    legacy_db = Database(legacy_dir / "learning.db")
+    legacy_db.save_thought(
+        None,
+        title="Legacy learning note",
+        content="existing single-user data",
+        tags="legacy",
+        lesson_key="week03",
+        language="zh-CN",
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/register",
+        data={
+            "username": "owner",
+            "display_name": "Owner",
+            "password": "owner-password-123",
+            "password_confirm": "owner-password-123",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    page = client.get("/thoughts")
+    assert page.status_code == 200
+    assert "Legacy learning note" in page.text
+
+    user = account_store().get_user_by_username("owner")
+    assert user
+    migrated = legacy_dir / "users" / user["storage_key"] / "learning.db"
+    assert migrated.exists()
+    with sqlite3.connect(migrated) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM thoughts WHERE title='Legacy learning note'").fetchone()[0] == 1
 
 
 def test_registration_can_be_disabled(monkeypatch, tmp_path):
