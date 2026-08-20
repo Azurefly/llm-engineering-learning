@@ -8,6 +8,8 @@ from . import code_challenges_v5  # noqa: F401 - fills coding labs for Week 2-18
 from . import grading_v5
 from . import question_snapshot
 from . import adaptive_v5 as adaptive_v5_module
+from . import admin as admin_module
+from . import auth as auth_module
 from . import code_exam as code_exam_module
 from . import exam_system as exam_system_module
 from . import exam_v2 as exam_v2_module
@@ -15,6 +17,8 @@ from . import exam_v3 as exam_v3_module
 from .adaptive import router as adaptive_router
 from .adaptive_v5 import router as adaptive_v5_router
 from .admin import router as admin_router
+from .admin_report_routes import router as admin_report_router
+from .admin_settings import registration_enabled as runtime_registration_enabled
 from .auth import install_auth, router as auth_router
 from .auto_backup import maybe_create_auto_backup
 from .code_exam import router as code_exam_router
@@ -27,6 +31,12 @@ from .hardening import install_security_headers
 from .main import app
 from .search import router as search_router
 
+# Runtime admin settings override the environment-backed bootstrap default. Route
+# functions resolve these module globals at request time, so no auth route rewrite
+# is needed and existing deployments remain backward compatible.
+auth_module.registration_enabled = runtime_registration_enabled
+admin_module.registration_enabled = runtime_registration_enabled
+
 # Freeze question definitions regardless of module import order, harden rubric
 # matching, and count CAT exposure only once after formal result materialization.
 question_snapshot.install()
@@ -37,6 +47,7 @@ grading_v5.install()
 # result/history routes remain available. All other feature routers are distinct.
 app.include_router(auth_router)
 app.include_router(admin_router)
+app.include_router(admin_report_router)
 app.include_router(exam_v3_router)
 app.include_router(code_exam_router)
 app.include_router(exam_v2_router)
