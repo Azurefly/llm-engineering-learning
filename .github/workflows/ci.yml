@@ -85,6 +85,8 @@ jobs:
             --data-urlencode 'password_confirm=ci-password-123' \
             -o /dev/null
           curl -fsS -b cookies.txt http://127.0.0.1:8765/admin/users | grep -q 'SUPERADMIN'
+          curl -fsS -b cookies.txt http://127.0.0.1:8765/admin/report | grep -q 'LEARNERS'
+          curl -fsS -b cookies.txt http://127.0.0.1:8765/admin/report/data | grep -q 'total_users'
       - name: Smoke authenticated feature routes
         run: |
           curl -fsS -b cookies.txt http://127.0.0.1:8765/ | grep -q '考试中心\|Exam Center'
@@ -110,7 +112,8 @@ jobs:
           done
           curl -fsS -b cookies.txt 'http://127.0.0.1:8765/search?q=multi-user-persistence-987654' | grep -q 'CI Docker persistence probe'
           curl -fsS -b cookies.txt http://127.0.0.1:8765/admin/users | grep -q 'SUPERADMIN'
-      - name: Verify second user isolation and admin denial
+          curl -fsS -b cookies.txt http://127.0.0.1:8765/admin/report >/dev/null
+      - name: Verify second user isolation and admin-report denial
         run: |
           curl -fsS -c cookies2.txt -b cookies2.txt -X POST http://127.0.0.1:8765/register \
             --data-urlencode 'username=ciuser2' \
@@ -124,7 +127,30 @@ jobs:
           fi
           status=$(curl -sS -o /dev/null -w '%{http_code}' -b cookies2.txt http://127.0.0.1:8765/admin/users)
           test "$status" = "403"
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -b cookies2.txt http://127.0.0.1:8765/admin/report)
+          test "$status" = "403"
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -b cookies2.txt http://127.0.0.1:8765/admin/report/data)
+          test "$status" = "403"
           curl -fsS -b cookies.txt 'http://127.0.0.1:8765/search?q=multi-user-persistence-987654' | grep -q 'CI Docker persistence probe'
+          curl -fsS -b cookies.txt http://127.0.0.1:8765/admin/report | grep -q 'CI User 2'
+          if curl -fsS -b cookies.txt http://127.0.0.1:8765/admin/report/data | grep -q 'multi-user-persistence-987654'; then
+            echo 'Private note leaked into admin progress report'
+            exit 1
+          fi
+      - name: Verify superadmin can stop and restart public registration at runtime
+        run: |
+          curl -fsS -b cookies.txt -X POST http://127.0.0.1:8765/admin/settings/registration \
+            --data-urlencode 'action=disable' \
+            --data-urlencode 'next=/admin/users' \
+            -o /dev/null
+          status=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8765/register)
+          test "$status" = "403"
+          curl -fsS -b cookies.txt -X POST http://127.0.0.1:8765/admin/settings/registration \
+            --data-urlencode 'action=enable' \
+            --data-urlencode 'next=/admin/users' \
+            -o /dev/null
+          status=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8765/register)
+          test "$status" = "200"
       - name: Container status
         run: docker compose ps
       - name: Stop application
@@ -148,7 +174,7 @@ jobs:
           description="One or more CI gates failed"
           if [ "$TEST_RESULT" = "success" ] && [ "$SANDBOX_RESULT" = "success" ] && [ "$DOCKER_RESULT" = "success" ]; then
             state=success
-            description="Cross-platform tests, sandbox, Docker isolation and admin permissions passed"
+            description="Cross-platform tests, sandbox, Docker isolation, admin reporting and registration control passed"
           fi
           if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             curl -fsS -X POST \
