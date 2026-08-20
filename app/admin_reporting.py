@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Any
 
 from .auth import account_store, user_learning_path
@@ -34,8 +33,17 @@ def _max_timestamp(conn: sqlite3.Connection, table: str, column: str) -> str | N
 
 
 def _empty_user_metrics(user: dict[str, Any]) -> dict[str, Any]:
+    # Never carry password hashes, storage keys, or any other authentication secrets
+    # into reporting payloads. The report is intentionally a progress-only view.
     return {
-        **user,
+        "id": int(user["id"]),
+        "username": str(user["username"]),
+        "display_name": str(user.get("display_name") or user["username"]),
+        "role": str(user.get("role") or "user"),
+        "is_active": int(user.get("is_active") or 0),
+        "created_at": user.get("created_at"),
+        "last_login_at": user.get("last_login_at"),
+        "active_sessions": int(user.get("active_sessions") or 0),
         "db_exists": False,
         "overall_progress": 0.0,
         "started_lessons": 0,
@@ -57,7 +65,6 @@ def _empty_user_metrics(user: dict[str, Any]) -> dict[str, Any]:
 def read_user_progress(user: dict[str, Any]) -> dict[str, Any]:
     result = _empty_user_metrics(user)
     db_path = user_learning_path(str(user["storage_key"]))
-    result["db_path"] = str(db_path)
     if not db_path.exists():
         return result
 
