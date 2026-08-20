@@ -11,7 +11,10 @@
 核心能力：
 
 - **多用户注册 / 登录 / 退出**；每个账号使用独立 SQLite 学习数据库，用户之间数据物理隔离。
-- 默认允许自主注册，可通过 `LLM_ALLOW_REGISTRATION=0` 关闭新用户注册。
+- 第一个账号自动成为 `SUPERADMIN`；超级管理员可管理用户、重置密码、启停账号和角色。
+- 超级管理员可在后台**即时开启/停止自主注册**，无需重启；`LLM_ALLOW_REGISTRATION` 只作为未保存后台策略时的初始默认值。
+- 超级管理员拥有**学习运营大屏**：查看全员学习进度、Week 0～18 推进、考试/代码实训通过率、活跃度与单用户进度详情。
+- 管理报表只读取进度、考试、代码实训统计；不会展示个人思考笔记、外链正文、学习者代码源文件或认证敏感字段。
 - 中英文课程切换，同一用户的学习进度跨语言共享。
 - 阅读进度记录；手工进度最高 99%，**考试成绩禁止手工录入**。
 - 系统考试：随机组卷、Easy / Medium / Hard、知识点标签、倒计时、自动保存、超时交卷、系统评分、成绩单与重考。
@@ -32,21 +35,24 @@
 - 系统诊断页：SQLite integrity、题库质量、Code Runner、备份状态。
 - Trusted Host、跨站写请求防护、安全响应头、HttpOnly Session Cookie。
 - Python 直接启动和加固后的 Docker Compose 启动。
-- GitHub Actions 验证：跨平台 pytest、注册/隔离测试、代码沙箱 Smoke Test、Docker 登录与持久化 Smoke Test。
+- GitHub Actions 验证：跨平台 pytest、注册/隔离/管理员报表测试、代码沙箱 Smoke Test、Docker 登录/持久化/权限/注册策略 Smoke Test。
 
-### 注册与数据隔离
+### 注册、超级管理员与数据隔离
 
-默认开启自主注册：
+默认的首次注册策略来自：
 
 ```text
 LLM_ALLOW_REGISTRATION=1
 ```
 
-如需关闭新账号注册：
+第一个成功注册的账号自动成为 `SUPERADMIN`。登录后可进入“用户管理”直接点击：
 
 ```text
-LLM_ALLOW_REGISTRATION=0
+停止自主注册
+开启自主注册
 ```
+
+后台设置保存在 `accounts.db`，修改后立即生效；不需要重启 Python 或 Docker。关闭自主注册后，`/register` 返回 `403`，已有账号仍可登录，超级管理员仍可手工创建用户。
 
 数据结构：
 
@@ -58,7 +64,17 @@ data/
    └─ <storage-key-B>/learning.db
 ```
 
-`accounts.db` 仅保存账号和 Session；课程进度、考试、错题、代码实训、思考、外链、能力画像、自适应测试和备份全部位于各用户自己的目录中。
+`accounts.db` 保存账号、Session 与系统注册策略；课程进度、考试、错题、代码实训、思考、外链、能力画像、自适应测试和备份全部位于各用户自己的目录中。
+
+超级管理员的大屏会跨用户只读汇总：
+
+```text
+lesson_progress
+exam_attempts
+code_attempts
+```
+
+不会把 `thoughts`、外链正文、`source_code`、`password_hash`、`storage_key` 等敏感内容放进管理员报表。
 
 从旧单用户版本升级时，如果 `data/learning.db` 已经存在学习数据，**第一个成功注册的账号会自动复制并继承这些历史数据**，原文件不会自动删除。
 
@@ -66,6 +82,8 @@ data/
 
 - [多用户、注册与数据隔离（中文）](docs/MULTI_USER.md)
 - [Multi-User Registration & Data Isolation](docs/MULTI_USER.en.md)
+- [超级管理员、用户管理与学习报表](docs/ADMIN.md)
+- [Superadmin, User Administration & Learning Reports](docs/ADMIN.en.md)
 
 ### Python
 
@@ -85,7 +103,7 @@ Python 模式中：
 
 ```text
 data/accounts.db
-# 账号 / Session
+# 账号 / Session / 系统设置
 
 data/users/<storage-key>/learning.db
 # 各用户独立学习数据
@@ -121,8 +139,12 @@ Compose 只映射宿主机 `127.0.0.1:8765`，并保留 Linux capabilities 全�
 | 思考笔记 | `/thoughts` |
 | 外部资料 | `/resources` |
 | 全局搜索 | `/search` |
+| 我的账号 | `/account` |
 | 数据与备份 | `/data-management` |
 | 系统诊断 | `/diagnostics` |
+| 超级管理员用户管理 | `/admin/users` |
+| 超级管理员学习运营大屏 | `/admin/report` |
+| 超级管理员报表 JSON | `/admin/report/data` |
 
 详细说明：
 
@@ -130,6 +152,8 @@ Compose 只映射宿主机 `127.0.0.1:8765`，并保留 Linux capabilities 全�
 - [English App Guide](docs/APP.en.md)
 - [多用户、注册与数据隔离](docs/MULTI_USER.md)
 - [Multi-User Registration & Data Isolation](docs/MULTI_USER.en.md)
+- [超级管理员、用户管理与学习报表](docs/ADMIN.md)
+- [Superadmin, User Administration & Learning Reports](docs/ADMIN.en.md)
 - [V3：计时考试与代码实训](docs/V3.md)
 - [V3: Timed Exams & Coding Labs](docs/V3.en.md)
 - [V4：自适应学习与能力画像](docs/V4.md)
@@ -193,7 +217,7 @@ Coding Agent
 
 A systematic engineering-oriented curriculum for LLMs, RAG, agents, evaluation, deployment, and AI coding systems.
 
-The local-first application supports multi-user registration/login with physically isolated per-user SQLite learning databases, system-graded randomized and timed exams, coding labs, mastery analytics, sequential adaptive testing, notes/resources, global search, per-user backups, and deployment diagnostics. Scores and mastery cannot be self-entered.
+The local-first application supports multi-user registration/login with physically isolated per-user SQLite learning databases, superadmin account governance and cross-user progress dashboards, runtime public-registration control, system-graded randomized/timed exams, coding labs, mastery analytics, sequential adaptive testing, private notes/resources, per-user backups, and deployment diagnostics. Scores and mastery cannot be self-entered.
 
 ## English Entry Points
 
