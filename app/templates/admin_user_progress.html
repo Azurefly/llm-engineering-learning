@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="{{ 'en' if lang == 'en' else 'zh-CN' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>{{ progress_report.display_name }} · {{ 'Learning Progress' if lang == 'en' else '学习进度' }}</title>
+  <link rel="stylesheet" href="/static/admin_report.css">
+</head>
+<body class="report-body">
+  <div class="report-shell detail-shell">
+    <section class="detail-hero">
+      <a class="detail-back" href="/admin/report">← {{ 'Back to dashboard' if lang == 'en' else '返回学习运营大屏' }}</a>
+      <div class="report-header">
+        <div>
+          <div class="report-eyebrow">LEARNER PROGRESS · SUPERADMIN</div>
+          <h1>{{ progress_report.display_name }}</h1>
+          <p>@{{ progress_report.username }} · {{ progress_report.role|upper }} · {{ 'ACTIVE' if progress_report.is_active else 'DISABLED' }}</p>
+        </div>
+        <div class="report-header-actions"><a href="/admin/users">{{ 'User Admin' if lang == 'en' else '用户管理' }}</a><a href="/admin/report">{{ 'Big Screen' if lang == 'en' else '运营大屏' }}</a></div>
+      </div>
+    </section>
+
+    <section class="detail-user-grid">
+      <article class="kpi-card accent"><span>{{ 'Overall progress' if lang == 'en' else '总学习进度' }}</span><strong>{{ '%.1f'|format(progress_report.overall_progress) }}%</strong><small>{{ progress_report.started_lessons }} {{ 'started' if lang == 'en' else '周已开始' }} · {{ progress_report.completed_lessons }} {{ 'completed' if lang == 'en' else '周完成' }}</small></article>
+      <article class="kpi-card"><span>{{ 'Current week' if lang == 'en' else '当前推进周' }}</span><strong>{{ ('W%02d'|format(progress_report.current_week)) if progress_report.current_week is not none else '-' }}</strong><small>{{ progress_report.last_activity or '-' }}</small></article>
+      <article class="kpi-card"><span>{{ 'Exam average' if lang == 'en' else '考试平均分' }}</span><strong>{{ ('%.1f%%'|format(progress_report.exam_avg)) if progress_report.exam_avg is not none else '-' }}</strong><small>{{ progress_report.exam_attempts }} {{ 'attempts' if lang == 'en' else '次考试' }} · {{ ('%.0f%% pass'|format(progress_report.exam_pass_rate)) if progress_report.exam_pass_rate is not none else '-' }}</small></article>
+      <article class="kpi-card"><span>{{ 'Best exam' if lang == 'en' else '考试最高分' }}</span><strong>{{ ('%.1f%%'|format(progress_report.exam_best)) if progress_report.exam_best is not none else '-' }}</strong><small>{{ 'System graded' if lang == 'en' else '系统自动评分' }}</small></article>
+      <article class="kpi-card"><span>{{ 'Coding practice' if lang == 'en' else '代码实训' }}</span><strong>{{ ('%.1f%%'|format(progress_report.code_avg)) if progress_report.code_avg is not none else '-' }}</strong><small>{{ progress_report.code_attempts }} {{ 'runs' if lang == 'en' else '次提交' }} · {{ ('%.0f%% pass'|format(progress_report.code_pass_rate)) if progress_report.code_pass_rate is not none else '-' }}</small></article>
+    </section>
+
+    <section class="report-panel">
+      <div class="panel-head"><div><span>WEEK 0–18</span><h2>{{ 'Lesson-by-lesson progress' if lang == 'en' else '逐周学习进度' }}</h2></div><small>{{ 'Progress/score only; private notes and resource content are not shown.' if lang == 'en' else '仅展示进度/成绩，不展示个人笔记与资料内容。' }}</small></div>
+      <div class="lesson-detail-grid">
+        {% for item in progress_report.lessons %}
+          <article class="lesson-detail-card {% if item.status == 'completed' or item.percent >= 100 %}done{% endif %}">
+            <span class="week">W{{ '%02d'|format(item.week) }}</span>
+            <strong>{{ item.percent }}%</strong>
+            <div class="week-track"><i style="width:{{ item.percent }}%"></i></div>
+            <span>{{ item.status }}</span>
+            <span>{{ 'System score' if lang == 'en' else '系统成绩' }}：{{ ('%.1f'|format(item.score)) if item.score is not none else '-' }}</span>
+            <span>{{ item.updated_at or '-' }}</span>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</body>
+</html>
