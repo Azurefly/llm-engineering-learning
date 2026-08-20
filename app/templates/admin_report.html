@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="{{ 'en' if lang == 'en' else 'zh-CN' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>{{ 'Learning Operations Dashboard' if lang == 'en' else '学习运营大屏' }} · LLM</title>
+  <link rel="stylesheet" href="/static/admin_report.css">
+</head>
+<body class="report-body">
+  <div class="report-shell">
+    <header class="report-header">
+      <div>
+        <div class="report-eyebrow">LLM ENGINEERING · SUPERADMIN</div>
+        <h1>{{ 'Learning Operations Dashboard' if lang == 'en' else '学习运营大屏' }}</h1>
+        <p>{{ 'Progress, assessment and coding-practice summaries across all registered users.' if lang == 'en' else '全体注册用户的学习进度、考试与代码实训汇总。' }}</p>
+      </div>
+      <div class="report-header-actions">
+        <span class="registration-pill {{ 'open' if registration_enabled else 'closed' }}">{{ ('REGISTRATION OPEN' if registration_enabled else 'REGISTRATION CLOSED') if lang == 'en' else ('自主注册：开启' if registration_enabled else '自主注册：关闭') }}</span>
+        <a href="/admin/users">{{ 'User Admin' if lang == 'en' else '用户管理' }}</a>
+        <a href="/">{{ 'Learning App' if lang == 'en' else '学习台' }}</a>
+        <button id="fullscreen-toggle" type="button">{{ 'Full screen' if lang == 'en' else '全屏展示' }}</button>
+      </div>
+    </header>
+
+    <section class="kpi-grid">
+      <article class="kpi-card"><span>{{ 'Registered users' if lang == 'en' else '注册用户' }}</span><strong>{{ report.kpis.total_users }}</strong><small>{{ report.kpis.enabled_users }} {{ 'enabled' if lang == 'en' else '个启用' }}</small></article>
+      <article class="kpi-card"><span>{{ 'Learning users' if lang == 'en' else '已开始学习' }}</span><strong>{{ report.kpis.learning_users }}</strong><small>{{ report.kpis.active_7d }} {{ 'active in 7d' if lang == 'en' else '近 7 天活跃' }}</small></article>
+      <article class="kpi-card accent"><span>{{ 'Average progress' if lang == 'en' else '平均学习进度' }}</span><strong>{{ '%.1f'|format(report.kpis.average_progress) }}%</strong><small>{{ report.kpis.completed_lessons }} {{ 'completed lessons' if lang == 'en' else '个课程完成记录' }}</small></article>
+      <article class="kpi-card"><span>{{ 'Exam pass rate' if lang == 'en' else '考试通过率' }}</span><strong>{{ ('%.1f%%'|format(report.kpis.exam_pass_rate)) if report.kpis.exam_pass_rate is not none else '-' }}</strong><small>{{ report.kpis.exam_attempts }} {{ 'submitted exams' if lang == 'en' else '次正式考试' }}</small></article>
+      <article class="kpi-card"><span>{{ 'Coding pass rate' if lang == 'en' else '代码实训通过率' }}</span><strong>{{ ('%.1f%%'|format(report.kpis.code_pass_rate)) if report.kpis.code_pass_rate is not none else '-' }}</strong><small>{{ report.kpis.code_attempts }} {{ 'coding attempts' if lang == 'en' else '次代码提交' }}</small></article>
+      <article class="kpi-card privacy"><span>{{ 'Privacy boundary' if lang == 'en' else '隐私边界' }}</span><strong>{{ 'Progress only' if lang == 'en' else '仅进度数据' }}</strong><small>{{ 'Notes and saved links are not read.' if lang == 'en' else '不读取思考笔记与外链正文' }}</small></article>
+    </section>
+
+    <section class="report-main-grid">
+      <article class="report-panel week-panel">
+        <div class="panel-head"><div><span>WEEK 0–18</span><h2>{{ 'Curriculum progress' if lang == 'en' else '课程整体推进' }}</h2></div><small>{{ 'Average / completed users' if lang == 'en' else '平均进度 / 完成人数' }}</small></div>
+        <div class="week-grid">
+          {% for item in report.week_stats %}
+          <div class="week-cell">
+            <div class="week-cell-head"><span>W{{ '%02d'|format(item.week) }}</span><b>{{ '%.0f'|format(item.average) }}%</b></div>
+            <div class="week-track"><i style="width:{{ item.average }}%"></i></div>
+            <div class="week-cell-foot"><span>{{ item.started }} {{ 'started' if lang == 'en' else '开始' }}</span><span>{{ item.completed }} {{ 'done' if lang == 'en' else '完成' }}</span></div>
+          </div>
+          {% endfor %}
+        </div>
+      </article>
+
+      <article class="report-panel distribution-panel">
+        <div class="panel-head"><div><span>DISTRIBUTION</span><h2>{{ 'User progress distribution' if lang == 'en' else '用户进度分布' }}</h2></div></div>
+        <div class="distribution-list">
+          {% for label, count in report.progress_bands.items() %}
+          <div class="distribution-row">
+            <span>{{ label }}%</span>
+            <div class="distribution-track"><i style="width:{{ (count * 100 / report.kpis.total_users) if report.kpis.total_users else 0 }}%"></i></div>
+            <b>{{ count }}</b>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="report-note">{{ 'The dashboard reads only progress, exam and coding summary tables from each isolated user database.' if lang == 'en' else '大屏只从每个独立用户数据库读取学习进度、考试与代码实训统计表。' }}</div>
+      </article>
+    </section>
+
+    <section class="report-panel user-panel">
+      <div class="panel-head"><div><span>LEARNERS</span><h2>{{ 'All-user progress' if lang == 'en' else '全员学习进度' }}</h2></div><small>{{ 'Click a learner for Week 0–18 detail' if lang == 'en' else '点击用户查看 Week 0～18 明细' }}</small></div>
+      <div class="report-table-wrap">
+        <table class="report-table">
+          <thead><tr><th>{{ 'Learner' if lang == 'en' else '用户' }}</th><th>{{ 'Progress' if lang == 'en' else '总进度' }}</th><th>{{ 'Completed' if lang == 'en' else '完成课程' }}</th><th>{{ 'Current' if lang == 'en' else '当前周' }}</th><th>{{ 'Exam' if lang == 'en' else '考试' }}</th><th>{{ 'Coding' if lang == 'en' else '实训' }}</th><th>{{ 'Last activity' if lang == 'en' else '最近活动' }}</th></tr></thead>
+          <tbody>
+          {% for user in report.users %}
+            <tr class="{% if not user.is_active %}disabled{% endif %}">
+              <td><a class="learner-link" href="/admin/users/{{ user.id }}/progress"><strong>{{ user.display_name }}</strong><span>@{{ user.username }} · {{ user.role|upper }}</span></a></td>
+              <td><div class="table-progress"><span>{{ '%.1f'|format(user.overall_progress) }}%</span><div><i style="width:{{ user.overall_progress }}%"></i></div></div></td>
+              <td>{{ user.completed_lessons }}/19</td>
+              <td>{{ ('W%02d'|format(user.current_week)) if user.current_week is not none else '-' }}</td>
+              <td>{% if user.exam_attempts %}<b>{{ '%.1f'|format(user.exam_avg or 0) }}%</b><span>{{ user.exam_attempts }} {{ 'tries' if lang == 'en' else '次' }} · {{ '%.0f'|format(user.exam_pass_rate or 0) }}% {{ 'pass' if lang == 'en' else '通过' }}</span>{% else %}-{% endif %}</td>
+              <td>{% if user.code_attempts %}<b>{{ '%.1f'|format(user.code_avg or 0) }}%</b><span>{{ user.code_attempts }} {{ 'runs' if lang == 'en' else '次' }} · {{ '%.0f'|format(user.code_pass_rate or 0) }}% {{ 'pass' if lang == 'en' else '通过' }}</span>{% else %}-{% endif %}</td>
+              <td><span class="activity-time">{{ user.last_activity or '-' }}</span></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="7" class="empty-row">{{ 'No users yet.' if lang == 'en' else '暂无用户。' }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="report-footer"><span>{{ 'Auto refresh every 60 seconds' if lang == 'en' else '每 60 秒自动刷新' }}</span><span id="report-clock"></span></footer>
+  </div>
+  <script src="/static/admin_report.js"></script>
+</body>
+</html>
