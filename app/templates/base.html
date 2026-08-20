@@ -32,7 +32,10 @@
     <a href="/resources" class="nav-item {% if current_path.startswith('/resources') %}active{% endif %}">↗ {{ t('resources') }}</a>
     <a href="/data-management" class="nav-item {% if current_path.startswith('/data-management') %}active{% endif %}">▣ {{ 'Data & Backup' if lang == 'en' else '数据与备份' }}</a>
     <a href="/account" class="nav-item {% if current_path.startswith('/account') %}active{% endif %}">◉ {{ 'My Account' if lang == 'en' else '我的账号' }}</a>
-    {% if request.state.user and request.state.user.role == 'superadmin' %}<a href="/admin/users" class="nav-item {% if current_path.startswith('/admin/users') %}active{% endif %}">⚙ {{ 'User Administration' if lang == 'en' else '用户管理' }} <span class="nav-entry-badge">ADMIN</span></a>{% endif %}
+    {% if request.state.user and request.state.user.role == 'superadmin' %}
+    <a href="/admin/report" class="nav-item {% if current_path.startswith('/admin/report') %}active{% endif %}">▤ {{ 'Learning Report' if lang == 'en' else '学习报表' }} <span class="nav-entry-badge">BI</span></a>
+    <a href="/admin/users" class="nav-item {% if current_path.startswith('/admin/users') %}active{% endif %}">⚙ {{ 'User Administration' if lang == 'en' else '用户管理' }} <span class="nav-entry-badge">ADMIN</span></a>
+    {% endif %}
   </nav>
   <div class="sidebar-label">{{ t('curriculum') }}</div>
   <div class="lesson-nav">{% for item in lessons %}<a class="lesson-nav-item {% if current_path == '/course/' + item.key %}active{% endif %}" href="/course/{{ item.key }}"><span class="week-pill">{{ '%02d'|format(item.week) }}</span><span class="lesson-nav-text">{{ item.title }}</span>{% if item.progress.status == 'completed' %}<span class="status-dot done"></span>{% elif item.progress.status == 'in_progress' %}<span class="status-dot doing"></span>{% else %}<span class="status-dot"></span>{% endif %}</a>{% endfor %}</div>
@@ -46,7 +49,7 @@
         <div class="sidebar-account-text"><strong>{{ request.state.user.display_name }} {% if request.state.user.role == 'superadmin' %}<span class="sidebar-role-badge">SUPERADMIN</span>{% endif %}</strong><span>@{{ request.state.user.username }}</span></div>
       </div>
       <a class="sidebar-admin-link" href="/account">◉ {{ 'Account settings' if lang == 'en' else '账号设置' }}</a>
-      {% if request.state.user.role == 'superadmin' %}<a class="sidebar-admin-link" href="/admin/users">⚙ {{ 'Manage users' if lang == 'en' else '管理用户' }}</a>{% endif %}
+      {% if request.state.user.role == 'superadmin' %}<a class="sidebar-admin-link" href="/admin/report">▤ {{ 'Learning dashboard' if lang == 'en' else '学习运营大屏' }}</a><a class="sidebar-admin-link" href="/admin/users">⚙ {{ 'Manage users' if lang == 'en' else '管理用户' }}</a>{% endif %}
       <form class="logout-form" method="post" action="/logout"><button class="logout-button" type="submit">↪ {{ 'Sign out' if lang == 'en' else '退出登录' }}</button></form>
     </div>
     {% endif %}
