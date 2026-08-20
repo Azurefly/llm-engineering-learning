@@ -1,6 +1,6 @@
 # Multi-User Login, Registration, and Data Isolation
 
-The application supports self-registration, login, logout, and physically isolated learning data per account.
+The application supports self-registration, login, logout, and physically isolated learning data per account. Superadmins additionally govern accounts, control public registration at runtime, and receive cross-user learning-progress reports.
 
 ## Data layout
 
@@ -16,25 +16,33 @@ data/
       └─ backups/
 ```
 
-`accounts.db` stores only accounts and sessions. Progress, exams, answers, mistakes, coding submissions, notes, resources, mastery data, adaptive sessions, and backups live in each user's own directory.
+`accounts.db` stores accounts, sessions, and global runtime settings. Progress, exams, answers, mistakes, coding submissions, notes, resources, mastery data, adaptive sessions, and backups live in each user's own directory.
 
 Isolation therefore does not depend only on application-level `WHERE user_id=?` filters; different users use different SQLite learning databases.
 
-## Registration
+## Registration and runtime policy
 
-Self-registration is enabled by default:
+Before any administrator has saved a registration policy, the initial default comes from:
 
 ```text
 LLM_ALLOW_REGISTRATION=1
 ```
 
-Disable new registration with:
+The first successful account becomes `SUPERADMIN`. A superadmin can then open:
 
 ```text
-LLM_ALLOW_REGISTRATION=0
+/admin/users
 ```
 
-Existing users can still sign in when registration is disabled.
+and enable or disable public registration immediately. The setting is persisted in `accounts.db.system_settings` and does not require a Python or Docker restart.
+
+When registration is disabled:
+
+- `/register` returns HTTP `403`;
+- existing users can still sign in;
+- superadmins can still provision accounts manually.
+
+Once a runtime policy has been saved, the database setting takes precedence over `LLM_ALLOW_REGISTRATION`.
 
 Registration rules:
 
@@ -68,6 +76,37 @@ For HTTPS reverse-proxy deployments, you can force secure cookies:
 LLM_COOKIE_SECURE=1
 ```
 
+## Superadmin learning-progress reports
+
+Superadmins can open:
+
+```text
+/admin/report
+/admin/report/data
+/admin/users/<id>/progress
+```
+
+to view all-user overall progress, Week 0-18 completion, system-exam summaries, coding-practice summaries, activity, and per-user lesson progress.
+
+Cross-user reading is explicitly limited to the reporting whitelist:
+
+```text
+lesson_progress
+exam_attempts
+code_attempts
+```
+
+The reporting layer does not output:
+
+- thought/note content;
+- saved-resource body/content;
+- learner source code;
+- password hashes;
+- storage keys;
+- user database paths.
+
+Physical per-user isolation therefore remains the storage boundary; the superadmin role receives a controlled **read-only progress reporting capability**, not unrestricted browsing of private learning records.
+
 ## Migration from the previous single-user version
 
 If an existing `data/learning.db` contains learning history when upgrading:
@@ -97,7 +136,7 @@ Curriculum Markdown, question-bank definitions, and coding-lab challenge definit
 
 ## Docker
 
-Docker Compose still stores `/data` in one named volume, while user data remains separated inside that volume:
+Docker Compose stores `/data` in one named volume, while user data remains separated inside that volume:
 
 ```text
 /data/accounts.db
@@ -105,7 +144,7 @@ Docker Compose still stores `/data` in one named volume, while user data remains
 /data/users/<storage-key>/backups/
 ```
 
-`docker compose down` keeps all accounts and learning data. `docker compose down -v` deletes the entire named volume, including every account and every user's learning data.
+`docker compose down` keeps all accounts, settings, and learning data. `docker compose down -v` deletes the entire named volume, including every account and every user's learning data.
 
 ## Security boundary
 
@@ -114,6 +153,6 @@ The default deployment still binds only to `127.0.0.1:8765`. When exposing it to
 - use an HTTPS reverse proxy;
 - configure `LLM_ALLOWED_HOSTS`;
 - consider `LLM_COOKIE_SECURE=1`;
-- set `LLM_ALLOW_REGISTRATION=0` if open self-registration is not desired.
+- manage self-registration from the superadmin UI; the environment variable is only the initial default.
 
-Application authentication and per-user data isolation do not replace TLS, firewalling, reverse-proxy configuration, and host security when exposed beyond localhost.
+Application authentication, controlled admin reporting, and per-user data isolation do not replace TLS, firewalling, reverse-proxy configuration, and host security when exposed beyond localhost.
