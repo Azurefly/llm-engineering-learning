@@ -6,28 +6,38 @@
     <div>
       <div class="adaptive-eyebrow">SUPERADMIN</div>
       <h1>{{ 'User Administration' if lang == 'en' else '用户管理' }}</h1>
-      <p>{{ 'Manage account registration metadata, roles, account status and password resets. Learning databases remain private.' if lang == 'en' else '管理账号注册信息、角色、启停状态和密码重置；不会读取其他用户的学习数据库。' }}</p>
+      <p>{{ 'Manage accounts and view learning-progress summaries. Private notes and saved-link content are not exposed.' if lang == 'en' else '管理账号并查看学习进度汇总；个人思考笔记与外链正文仍保持私有。' }}</p>
     </div>
-    <a class="adaptive-btn" href="/account">{{ 'My account' if lang == 'en' else '我的账号' }}</a>
+    <div class="admin-hero-actions"><a class="adaptive-btn primary" href="/admin/report">{{ 'Learning big screen' if lang == 'en' else '学习运营大屏' }}</a><a class="adaptive-btn" href="/account">{{ 'My account' if lang == 'en' else '我的账号' }}</a></div>
   </section>
 
   {% if error %}<div class="admin-alert error">{{ error }}</div>{% endif %}
   {% if status %}
     <div class="admin-alert success">✓
       {% if lang == 'en' %}
-        {% if status == 'created' %}User created.{% elif status == 'updated' %}User profile updated.{% elif status == 'status-updated' %}Account status updated.{% elif status == 'role-updated' %}User role updated.{% elif status == 'password-reset' %}Password reset and active sessions revoked.{% else %}Operation completed.{% endif %}
+        {% if status == 'created' %}User created.{% elif status == 'updated' %}User profile updated.{% elif status == 'status-updated' %}Account status updated.{% elif status == 'role-updated' %}User role updated.{% elif status == 'password-reset' %}Password reset and active sessions revoked.{% elif status == 'registration-enabled' %}Public registration enabled immediately.{% elif status == 'registration-disabled' %}Public registration disabled immediately.{% else %}Operation completed.{% endif %}
       {% else %}
-        {% if status == 'created' %}用户已创建。{% elif status == 'updated' %}用户注册信息已更新。{% elif status == 'status-updated' %}账号状态已更新。{% elif status == 'role-updated' %}用户角色已更新。{% elif status == 'password-reset' %}密码已重置，原有登录 Session 已全部失效。{% else %}操作完成。{% endif %}
+        {% if status == 'created' %}用户已创建。{% elif status == 'updated' %}用户注册信息已更新。{% elif status == 'status-updated' %}账号状态已更新。{% elif status == 'role-updated' %}用户角色已更新。{% elif status == 'password-reset' %}密码已重置，原有登录 Session 已全部失效。{% elif status == 'registration-enabled' %}自主注册已立即开启。{% elif status == 'registration-disabled' %}自主注册已立即关闭。{% else %}操作完成。{% endif %}
       {% endif %}
     </div>
   {% endif %}
 
-  <section class="adaptive-card admin-create-card">
+  <section class="adaptive-card admin-registration-card">
     <div class="adaptive-card-head">
-      <div><span class="section-kicker">CREATE USER</span><h2>{{ 'Create an account' if lang == 'en' else '管理员创建账号' }}</h2></div>
+      <div><span class="section-kicker">REGISTRATION POLICY</span><h2>{{ 'Public registration' if lang == 'en' else '自主注册策略' }}</h2></div>
       <span class="admin-registration-state {{ 'on' if registration_enabled else 'off' }}">{{ ('PUBLIC REGISTRATION ON' if registration_enabled else 'PUBLIC REGISTRATION OFF') if lang == 'en' else ('自主注册已开启' if registration_enabled else '自主注册已关闭') }}</span>
     </div>
-    <p>{{ 'Superadmins can create accounts even when public registration is disabled.' if lang == 'en' else '即使关闭自主注册，超级管理员仍然可以在这里创建新账号。' }}</p>
+    <p>{{ 'This switch is stored in accounts.db and takes effect immediately; no Docker restart is required. Superadmins can still create users manually when registration is closed.' if lang == 'en' else '该开关持久化在 accounts.db，修改后立即生效，无需重启 Docker；关闭自主注册后，超级管理员仍可手工创建账号。' }}</p>
+    <form method="post" action="/admin/settings/registration" class="admin-inline-form">
+      <input type="hidden" name="next" value="/admin/users">
+      <input type="hidden" name="action" value="{{ 'disable' if registration_enabled else 'enable' }}">
+      <button class="adaptive-btn {% if registration_enabled %}danger{% else %}primary{% endif %}" type="submit">{{ ('Disable public registration' if registration_enabled else 'Enable public registration') if lang == 'en' else ('停止自主注册' if registration_enabled else '开启自主注册') }}</button>
+    </form>
+  </section>
+
+  <section class="adaptive-card admin-create-card">
+    <div class="adaptive-card-head"><div><span class="section-kicker">CREATE USER</span><h2>{{ 'Create an account' if lang == 'en' else '管理员创建账号' }}</h2></div></div>
+    <p>{{ 'Superadmins can create accounts regardless of the public registration setting.' if lang == 'en' else '超级管理员创建账号不受自主注册开关影响。' }}</p>
     <form method="post" action="/admin/users/create" class="admin-create-grid">
       <label>{{ 'Username' if lang == 'en' else '用户名' }}<input name="username" minlength="3" maxlength="32" required></label>
       <label>{{ 'Display name' if lang == 'en' else '显示名称' }}<input name="display_name" maxlength="64"></label>
@@ -49,7 +59,7 @@
               <div class="admin-user-badges"><span class="admin-role {{ user.role }}">{{ user.role|upper }}</span><span class="admin-status {{ 'active' if user.is_active else 'inactive' }}">{{ 'ACTIVE' if user.is_active else 'DISABLED' }}</span>{% if user.id == admin_user.id %}<span class="admin-self">{{ 'YOU' if lang == 'en' else '当前账号' }}</span>{% endif %}</div>
             </div>
           </div>
-          <div class="admin-user-meta"><span>ID {{ user.id }}</span><span>{{ 'Sessions' if lang == 'en' else '有效会话' }} {{ user.active_sessions }}</span></div>
+          <div class="admin-user-meta"><span>ID {{ user.id }}</span><span>{{ 'Sessions' if lang == 'en' else '有效会话' }} {{ user.active_sessions }}</span><a class="admin-progress-link" href="/admin/users/{{ user.id }}/progress">{{ 'View progress' if lang == 'en' else '查看学习进度' }} →</a></div>
         </div>
 
         <div class="admin-user-grid">
