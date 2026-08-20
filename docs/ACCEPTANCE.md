@@ -8,7 +8,8 @@
 
 - 多用户账号注册、登录、退出；
 - `superadmin` / `user` 两级账号角色；
-- 超级管理员账号管理与密码重置；
+- 超级管理员账号管理、密码重置与自主注册策略控制；
+- 超级管理员全员学习进度报表与大屏；
 - 每个用户学习数据物理隔离；
 - 本地优先；
 - Python 或 Docker 启动；
@@ -20,7 +21,8 @@ Current scope:
 
 - multi-user registration/login/logout;
 - `superadmin` / `user` account roles;
-- superadmin account administration and password reset;
+- superadmin account administration, password reset, and runtime registration policy control;
+- superadmin all-user learning progress reports and big-screen dashboard;
 - physically isolated learning data per account;
 - local first;
 - Python or Docker runtime;
@@ -33,24 +35,26 @@ Current scope:
 验收要求：
 
 - 未登录用户不能访问学习数据页面与写接口；
-- 默认支持自主注册，可通过 `LLM_ALLOW_REGISTRATION=0` 关闭；
+- 首次自主注册默认值可由 `LLM_ALLOW_REGISTRATION` 配置；
+- 超级管理员可在后台即时开启/停止自主注册，设置持久化到 `accounts.db` 且无需重启；
+- 关闭自主注册后 `/register` 必须返回 403，但已有账号仍可登录，超级管理员仍可手工创建账号；
 - 用户名唯一；
 - 密码不得明文存储；
 - Session 使用随机 Token，浏览器 Cookie 必须 `HttpOnly` + `SameSite=Lax`；
 - 全新系统第一个注册账号自动成为 `superadmin`；
 - 旧多用户账号库若不存在超级管理员，升级后最早账号自动获得 `superadmin`；
-- 普通 `user` 访问 `/admin/users` 必须返回 403；
+- 普通 `user` 访问 `/admin/users`、`/admin/report`、`/admin/report/data` 和单用户管理员进度页必须返回 403；
 - 超级管理员可创建账号、修改用户名/显示名、启停账号、管理角色、重置其他用户密码；
 - 密码重置与账号停用必须立即撤销目标用户现有 Session；
 - 当前超级管理员不能停用或降低自己的角色，系统必须始终保留至少一个启用的超级管理员；
 - 所有用户可在 `/account` 修改自己的账号信息和密码；自助改密后必须注销全部现有 Session；
 - `accounts.db` 与学习数据分离；
 - 每个用户使用独立 `users/<storage_key>/learning.db`；
-- 超级管理员权限不包含跨用户读取学习数据库；
-- 不同用户的课程进度、考试、错题、代码实训、思考、外链、能力画像、自适应会话、备份互不可见；
+- 超级管理员允许跨用户**只读汇总学习进度、考试与代码实训统计**；
+- 管理报表不得输出 `password_hash`、`storage_key`、数据库路径、个人思考笔记、外链正文或代码源文件；
+- 除上述管理员统计白名单外，不同用户的学习数据、私人知识记录和备份互不可见；
 - 第一个注册用户必须能够自动继承旧版单用户 `data/learning.db`；
-- 后续新用户必须从空白独立数据库开始；
-- 关闭注册后已有账号仍可登录，超级管理员仍可从管理页创建账号。
+- 后续新用户必须从空白独立数据库开始。
 
 ## 3. 学习闭环 / Learning Loop
 
@@ -114,7 +118,22 @@ Current scope:
 - 无网络、资源限制、非 root、只读题目工作区、能力移除；
 - CI 必须真实构建沙箱并完成 pytest 自动评分 Smoke Test。
 
-## 7. 数据可靠性 / Data Reliability
+## 7. 管理报表 / Administration Reporting
+
+超级管理员报表验收基线：
+
+- `/admin/report` 提供可全屏展示的大屏报表；
+- 默认展示注册用户数、启用用户数、已开始学习人数、近 7 天活跃人数、平均总进度；
+- 展示 Week 0～18 每周平均进度、开始人数、完成人数；
+- 展示系统考试次数/通过率和代码实训次数/通过率；
+- 展示用户总体进度分布；
+- 展示每个用户的总进度、完成课程数、当前周、考试表现、代码实训表现和最近活动；
+- `/admin/users/<id>/progress` 提供逐用户 Week 0～18 进度详情；
+- `/admin/report/data` 提供同一统计模型的 JSON 数据；
+- 大屏不得读取/展示 `thoughts`、资源正文、代码源文件或认证敏感字段；
+- 大屏与管理员详情页必须设置 `Cache-Control: no-store`。
+
+## 8. 数据可靠性 / Data Reliability
 
 当前验收基线：
 
@@ -123,7 +142,7 @@ Current scope:
 - 外键开启；
 - Python 模式本地 `data/` 不进入 Git；
 - Docker 使用 permission-safe named volume；
-- Docker 容器重启后账号、Session 与学习数据仍存在；
+- Docker 容器重启后账号、Session、系统注册策略与学习数据仍存在；
 - 每个用户独立 JSON 导出；
 - 每个用户独立恢复前安全快照与滚动自动备份；
 - 备份不包含其他用户和认证账号数据；
@@ -131,7 +150,7 @@ Current scope:
 - 恢复前显式确认；
 - 事务恢复与失败回滚。
 
-## 8. 本地安全边界 / Local Security Boundary
+## 9. 本地安全边界 / Local Security Boundary
 
 当前验收基线：
 
@@ -146,12 +165,13 @@ Current scope:
 - Session Token 数据库只保存摘要；
 - 超级管理员路由必须进行服务端角色校验，而非只隐藏菜单；
 - 管理员重置密码/停用账号必须撤销目标 Session；
-- 管理员界面不得暴露其他用户学习数据；
+- 管理员报表只可读取明确白名单的进度统计字段；
+- 管理员页面和 JSON 不得缓存；
 - Docker `cap_drop: ALL`；
 - Docker `no-new-privileges`；
 - 代码执行默认关闭。
 
-## 9. 可维护性 / Maintainability
+## 10. 可维护性 / Maintainability
 
 当前验收基线：
 
@@ -159,32 +179,37 @@ Current scope:
 - 历史 `main_v*.py` 不参与正式启动链；
 - 用户数据库 schema 可在登录后自动创建/升级；
 - `accounts.db` 可自动迁移 `role` 字段和超级管理员；
+- 系统运行时设置使用独立 `system_settings` 表；
+- 管理报表逻辑集中在独立模块，不直接复用私人内容查询；
 - 已验证直接依赖固定版本；
 - Dependabot 定期提出升级；
 - 系统诊断页面与 API；
 - README / APP / MULTI_USER / ADMIN / V5 中英文说明与真实行为一致。
 
-## 10. CI 发布门禁 / CI Release Gate
+## 11. CI 发布门禁 / CI Release Gate
 
 `main` 应同时通过：
 
 1. Ubuntu + Python 3.11 完整 pytest；
 2. Ubuntu + Python 3.12 完整 pytest；
 3. Windows + Python 3.12 完整 pytest；
-4. 注册、错误密码、Session、关闭注册测试；
+4. 注册、错误密码、Session 测试；
 5. 两用户物理数据库隔离测试；
 6. 首用户旧单用户数据迁移测试；
 7. 首账号超级管理员、旧账号库角色迁移测试；
 8. 普通用户访问超级管理员接口 403 测试；
 9. 管理员修改注册信息、启停账号、角色保护、密码重置与 Session 撤销测试；
 10. 用户自助改密与 Session 撤销测试；
-11. 真实 Docker Coding Sandbox Smoke Test；
-12. 完整 Docker Compose Smoke Test，包括注册首个超级管理员、管理员页面、普通用户 403、用户隔离、SQLite 写入、容器重启、Session 与用户数据持久化验证；
-13. `pip check` 依赖一致性验证。
+11. 管理员跨用户学习进度汇总、逐用户进度详情测试；
+12. 管理报表认证字段/私人笔记/代码源文件不泄露测试；
+13. 管理员即时停止/恢复自主注册测试；
+14. 真实 Docker Coding Sandbox Smoke Test；
+15. 完整 Docker Compose Smoke Test，包括首个超级管理员、大屏、普通用户 403、用户隔离、注册策略切换、SQLite 写入、容器重启、Session 与用户数据持久化验证；
+16. `pip check` 依赖一致性验证。
 
 任何一项失败，都不应视为当前版本完成。
 
-## 11. 明确属于新范围的能力 / Explicit Future Scope
+## 12. 明确属于新范围的能力 / Explicit Future Scope
 
 以下能力如果未来需要，应作为新需求单独设计：
 
@@ -204,4 +229,4 @@ Current scope:
 
 ## 完成定义 / Definition of Done
 
-当本文件第 2～10 节全部满足，并且最新 `main` CI 全绿时，当前产品范围内可视为完成；之后的工作应以新需求、新课程内容或新部署范围立项。
+当本文件第 2～11 节全部满足，并且最新 `main` CI 全绿时，当前产品范围内可视为完成；之后的工作应以新需求、新课程内容或新部署范围立项。
