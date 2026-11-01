@@ -41,6 +41,24 @@ jobs:
           LLM_CODE_RUNNER: disabled
         run: pytest -q
 
+  security-audit:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.lock.txt
+      - name: Install verified dependencies
+        run: pip install -r requirements-dev.lock.txt
+      - name: Audit the verified dependency set for known vulnerabilities
+        run: |
+          python -m pip install --disable-pip-version-check 'pip-audit==2.10.1'
+          python -m pip_audit --skip-editable --progress-spinner off
+
   sandbox-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -159,7 +177,7 @@ jobs:
 
   ci-gate:
     name: aggregate CI gate
-    needs: [test, sandbox-smoke, app-docker-smoke]
+    needs: [test, security-audit, sandbox-smoke, app-docker-smoke]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -167,14 +185,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TEST_RESULT: ${{ needs.test.result }}
+          AUDIT_RESULT: ${{ needs.security-audit.result }}
           SANDBOX_RESULT: ${{ needs.sandbox-smoke.result }}
           DOCKER_RESULT: ${{ needs.app-docker-smoke.result }}
         run: |
           state=failure
           description="One or more CI gates failed"
-          if [ "$TEST_RESULT" = "success" ] && [ "$SANDBOX_RESULT" = "success" ] && [ "$DOCKER_RESULT" = "success" ]; then
+          if [ "$TEST_RESULT" = "success" ] && [ "$AUDIT_RESULT" = "success" ] && [ "$SANDBOX_RESULT" = "success" ] && [ "$DOCKER_RESULT" = "success" ]; then
             state=success
-            description="Cross-platform tests, sandbox, Docker isolation, admin reporting and registration control passed"
+            description="Cross-platform tests, dependency audit, sandbox, Docker isolation, admin reporting and registration control passed"
           fi
           if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             curl -fsS -X POST \
