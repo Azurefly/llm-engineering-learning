@@ -1,14 +1,29 @@
+import tomllib
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
-from app.current import app
+import app
+from app.current import app as current_app
 
-client = TestClient(app)
+client = TestClient(current_app)
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_health():
     r = client.get("/health")
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
+
+
+def test_health_reports_the_release_version():
+    assert client.get("/health").json()["version"] == app.__version__
+
+
+def test_package_version_matches_pyproject():
+    metadata = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert metadata["project"]["version"] == app.__version__
 
 
 def test_dashboard():
