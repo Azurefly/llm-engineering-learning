@@ -40,9 +40,9 @@ source = ["app"]
 
 [tool.coverage.report]
 # The floor guards against silent coverage regressions. It sits slightly below
-# the measured value so an unrelated refactor does not fail the build, while a
-# new untested module still does.
-fail_under = 88
+# the measured value (95.6%) so an unrelated refactor does not fail the build,
+# while a new untested module still does.
+fail_under = 95
 show_missing = true
 skip_covered = true
 exclude_lines = [
