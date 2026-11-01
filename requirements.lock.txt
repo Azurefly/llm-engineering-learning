@@ -1,5 +1,5 @@
 # Verified runtime dependency set for reproducible local/Docker builds.
-fastapi==0.141.1
+fastapi==0.162.0
 uvicorn[standard]==0.52.3
 jinja2==3.1.6
 python-multipart==0.0.32
