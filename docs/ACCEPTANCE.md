@@ -182,7 +182,10 @@ Current scope:
 - 系统运行时设置使用独立 `system_settings` 表；
 - 管理报表逻辑集中在独立模块，不直接复用私人内容查询；
 - 已验证直接依赖固定版本；
-- Dependabot 定期提出升级；
+- Dependabot 定期提出升级，按生态分组并提出 PR，附带冷却期；
+- 静态检查与格式由 `ruff` 统一执行，规则集在 `pyproject.toml` 显式锁定（不依赖工具默认值）；
+- 覆盖率门槛 95%（实测 95.6%），由独立 `coverage` job 执行；
+- 版本号在 `app.__version__` 与 `pyproject.toml` 双处声明，由测试保证一致；
 - 系统诊断页面与 API；
 - README / APP / MULTI_USER / ADMIN / V5 中英文说明与真实行为一致。
 
@@ -205,9 +208,13 @@ Current scope:
 13. 管理员即时停止/恢复自主注册测试；
 14. 真实 Docker Coding Sandbox Smoke Test；
 15. 完整 Docker Compose Smoke Test，包括首个超级管理员、大屏、普通用户 403、用户隔离、注册策略切换、SQLite 写入、容器重启、Session 与用户数据持久化验证；
-16. `pip check` 依赖一致性验证。
+16. `pip check` 依赖一致性验证；
+17. `ruff check .` 静态检查；
+18. `ruff format --check .` 格式检查；
+19. `pytest --cov` 覆盖率不低于 95%；
+20. `pip-audit` 已验证依赖集无已知漏洞。
 
-任何一项失败，都不应视为当前版本完成。
+以上结果由聚合 job `llm-learning/ci-gate` 汇总；任何一项失败，都不应视为当前版本完成。
 
 ## 12. 明确属于新范围的能力 / Explicit Future Scope
 

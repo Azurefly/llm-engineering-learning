@@ -250,10 +250,12 @@ LLM_ALLOW_REGISTRATION=0
 
 ## Health and diagnostics
 
-Basic health endpoint (public for container health checks):
+Basic health endpoint (public for container health checks), which also reports the running release version:
 
 ```text
 GET /health
+
+{"status": "ok", "version": "1.0.0"}
 ```
 
 Full diagnostics (authenticated and scoped to the signed-in user's learning database):
