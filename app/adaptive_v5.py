@@ -104,7 +104,9 @@ def _session(session_id: int) -> dict[str, Any] | None:
 
 def _items(session_id: int) -> list[dict[str, Any]]:
     with db.connect() as conn:
-        rows = conn.execute("SELECT * FROM adaptive_session_items WHERE session_id=? ORDER BY seq", (session_id,)).fetchall()
+        rows = conn.execute(
+            "SELECT * FROM adaptive_session_items WHERE session_id=? ORDER BY seq", (session_id,)
+        ).fetchall()
     result: list[dict[str, Any]] = []
     for raw in rows:
         item = dict(raw)
@@ -145,10 +147,14 @@ def _question_exposure() -> dict[str, int]:
     with db.connect() as conn:
         tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
         if "exam_attempt_questions" in tables:
-            for row in conn.execute("SELECT question_id,COUNT(*) FROM exam_attempt_questions GROUP BY question_id").fetchall():
+            for row in conn.execute(
+                "SELECT question_id,COUNT(*) FROM exam_attempt_questions GROUP BY question_id"
+            ).fetchall():
                 counts[str(row[0])] += int(row[1])
         if "adaptive_session_items" in tables:
-            for row in conn.execute("SELECT question_id,COUNT(*) FROM adaptive_session_items GROUP BY question_id").fetchall():
+            for row in conn.execute(
+                "SELECT question_id,COUNT(*) FROM adaptive_session_items GROUP BY question_id"
+            ).fetchall():
                 counts[str(row[0])] += int(row[1])
     return dict(counts)
 
@@ -158,7 +164,9 @@ def _default_targets(profile: dict[str, dict[str, Any]], limit: int = 5) -> list
     if recs:
         return [str(x["tag"]) for x in recs]
     candidates = list(profile.values())
-    candidates.sort(key=lambda x: (int(x.get("evidence_count") or 0), float(x.get("score") or 0), str(x.get("tag") or "")))
+    candidates.sort(
+        key=lambda x: (int(x.get("evidence_count") or 0), float(x.get("score") or 0), str(x.get("tag") or ""))
+    )
     return [str(x["tag"]) for x in candidates[:limit] if x.get("tag")]
 
 
@@ -191,7 +199,14 @@ def _desired_difficulty(score: float) -> str:
     return "hard"
 
 
-def _candidate_score(lesson_key: str, question: Question, state: dict[str, dict[str, float]], exposure: dict[str, int], used: set[str], rng: random.Random) -> float:
+def _candidate_score(
+    lesson_key: str,
+    question: Question,
+    state: dict[str, dict[str, float]],
+    exposure: dict[str, int],
+    used: set[str],
+    rng: random.Random,
+) -> float:
     if question.id in used:
         return -1e9
     tags = knowledge_for(lesson_key, question)
@@ -247,7 +262,11 @@ def _ensure_pending(session: dict[str, Any]) -> dict[str, Any] | None:
                    session_id,seq,lesson_key,question_id,difficulty,knowledge_json,question_json,created_at
                ) VALUES(?,?,?,?,?,?,?,?)""",
             (
-                session["id"], seq, lesson_key, question.id, difficulty_for(question),
+                session["id"],
+                seq,
+                lesson_key,
+                question.id,
+                difficulty_for(question),
                 json.dumps(knowledge, ensure_ascii=False),
                 json.dumps(_question_to_dict(question), ensure_ascii=False),
                 now_iso(),
@@ -264,9 +283,15 @@ def _finish_session(session: dict[str, Any]) -> int:
         raise HTTPException(409, "Adaptive session has no answered items")
     selected = [(str(x["lesson_key"]), x["question"]) for x in items]
     attempt_id = _create_attempt(
-        lesson_key="adaptive-test", lang=str(session["language"]), mode="adaptive-sequential", scope_key="adaptive-test",
-        title_zh="逐题自适应能力测试", title_en="Sequential Adaptive Assessment", selected=selected,
-        pass_score=80, seed=int(session["seed"]),
+        lesson_key="adaptive-test",
+        lang=str(session["language"]),
+        mode="adaptive-sequential",
+        scope_key="adaptive-test",
+        title_zh="逐题自适应能力测试",
+        title_en="Sequential Adaptive Assessment",
+        selected=selected,
+        pass_score=80,
+        seed=int(session["seed"]),
     )
     answers = {str(x["question_id"]): x["answer"] for x in items}
     attempt = _attempt(attempt_id)
@@ -274,7 +299,10 @@ def _finish_session(session: dict[str, Any]) -> int:
         raise HTTPException(500, "Failed to create assessment attempt")
     _save_submission(attempt, answers, _selected_questions(attempt_id))
     with db.connect() as conn:
-        conn.execute("UPDATE adaptive_sessions SET status='completed',completed_at=?,exam_attempt_id=? WHERE id=?", (now_iso(), attempt_id, session["id"]))
+        conn.execute(
+            "UPDATE adaptive_sessions SET status='completed',completed_at=?,exam_attempt_id=? WHERE id=?",
+            (now_iso(), attempt_id, session["id"]),
+        )
     return attempt_id
 
 
@@ -283,7 +311,14 @@ def adaptive_test_home(request: Request):
     lang = _lang(request)
     profile = mastery_profile()
     c = _nav(request, lang)
-    c.update({"targets": _default_targets(profile), "profile": profile, "recent_sessions": _recent_sessions(), "max_items": _adaptive_max_items()})
+    c.update(
+        {
+            "targets": _default_targets(profile),
+            "profile": profile,
+            "recent_sessions": _recent_sessions(),
+            "max_items": _adaptive_max_items(),
+        }
+    )
     return templates.TemplateResponse(request=request, name="adaptive_test_home.html", context=c)
 
 
@@ -311,7 +346,9 @@ def abandon_adaptive_test(session_id: int):
         raise HTTPException(404)
     if session["status"] == "started":
         with db.connect() as conn:
-            conn.execute("UPDATE adaptive_sessions SET status='abandoned',completed_at=? WHERE id=?", (now_iso(), session_id))
+            conn.execute(
+                "UPDATE adaptive_sessions SET status='abandoned',completed_at=? WHERE id=?", (now_iso(), session_id)
+            )
     return RedirectResponse("/adaptive-test", status_code=303)
 
 
@@ -334,13 +371,15 @@ def adaptive_test_take(request: Request, session_id: int):
     lang = str(session["language"])
     items = _items(session_id)
     c = _nav(request, lang)
-    c.update({
-        "session": session,
-        "item": pending,
-        "question": _question_view({**pending, "question": question}, lang),
-        "answered_count": sum(1 for x in items if x.get("answer_json") is not None),
-        "tag_state": _session_tag_state(session, items),
-    })
+    c.update(
+        {
+            "session": session,
+            "item": pending,
+            "question": _question_view({**pending, "question": question}, lang),
+            "answered_count": sum(1 for x in items if x.get("answer_json") is not None),
+            "tag_state": _session_tag_state(session, items),
+        }
+    )
     return templates.TemplateResponse(request=request, name="adaptive_test.html", context=c)
 
 

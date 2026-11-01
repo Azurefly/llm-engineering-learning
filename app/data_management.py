@@ -29,12 +29,14 @@ def data_management(request: Request):
     backup_dir = db.backup_dir
     pre_restore = sorted(backup_dir.glob("pre-restore-*.json"), reverse=True)[:10] if backup_dir.exists() else []
     automatic = sorted(backup_dir.glob("auto-*.json"), reverse=True)[:10] if backup_dir.exists() else []
-    c.update({
-        "snapshots": [x.name for x in pre_restore],
-        "automatic_backups": [x.name for x in automatic],
-        "restore_limit_mb": _restore_limit_bytes() // (1024 * 1024),
-        "status": request.query_params.get("status"),
-    })
+    c.update(
+        {
+            "snapshots": [x.name for x in pre_restore],
+            "automatic_backups": [x.name for x in automatic],
+            "restore_limit_mb": _restore_limit_bytes() // (1024 * 1024),
+            "status": request.query_params.get("status"),
+        }
+    )
     return templates.TemplateResponse(request=request, name="data_management.html", context=c)
 
 

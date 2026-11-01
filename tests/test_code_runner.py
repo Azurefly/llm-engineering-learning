@@ -10,7 +10,9 @@ from app.code_runner import (
     get_code_runner,
 )
 
-REQUEST = CodeRunRequest(source_code="def add(a, b):\n    return a + b\n", tests_source="def test_add():\n    assert True\n")
+REQUEST = CodeRunRequest(
+    source_code="def add(a, b):\n    return a + b\n", tests_source="def test_add():\n    assert True\n"
+)
 
 
 class _Completed:

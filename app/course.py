@@ -17,8 +17,22 @@ class Lesson:
 
 LESSONS = [
     Lesson("week00", 0, "基线测试", "Baseline Assessment", "docs/00-baseline-test.md", "docs/00-baseline-test.en.md"),
-    Lesson("week01", 1, "数学与机器学习基础", "Math & Machine Learning Foundations", "docs/week01-ml-foundations.md", "docs/week01-ml-foundations.en.md"),
-    Lesson("week02", 2, "神经网络与 PyTorch", "Neural Networks & PyTorch", "docs/week02-neural-network-pytorch.md", "docs/week02-neural-network-pytorch.en.md"),
+    Lesson(
+        "week01",
+        1,
+        "数学与机器学习基础",
+        "Math & Machine Learning Foundations",
+        "docs/week01-ml-foundations.md",
+        "docs/week01-ml-foundations.en.md",
+    ),
+    Lesson(
+        "week02",
+        2,
+        "神经网络与 PyTorch",
+        "Neural Networks & PyTorch",
+        "docs/week02-neural-network-pytorch.md",
+        "docs/week02-neural-network-pytorch.en.md",
+    ),
     Lesson("week03", 3, "Tokenizer 与语言模型", "Tokenizers & Language Modeling"),
     Lesson("week04", 4, "Transformer / Attention", "Transformer / Attention"),
     Lesson("week05", 5, "LLM API 与 Prompt Engineering", "LLM APIs & Prompt Engineering"),
@@ -45,9 +59,7 @@ def title_for(lesson: Lesson, lang: str) -> str:
 
 
 def _extract_week_section(text: str, week: int) -> str:
-    pattern = re.compile(
-        rf"(?ms)^#\s+Week\s+{week}\b.*?(?=^#\s+Week\s+{week + 1}\b|\Z)"
-    )
+    pattern = re.compile(rf"(?ms)^#\s+Week\s+{week}\b.*?(?=^#\s+Week\s+{week + 1}\b|\Z)")
     match = pattern.search(text)
     if match:
         return match.group(0).strip()
@@ -67,8 +79,7 @@ def load_lesson_markdown(repo_root: Path, lesson: Lesson, lang: str) -> tuple[st
         section = _extract_week_section(roadmap_path.read_text(encoding="utf-8"), lesson.week)
         return section, roadmap_name
 
-    fallback = (
-        f"# Week {lesson.week} — {title_for(lesson, lang)}\n\n"
-        + ("Detailed lesson content is being prepared." if lang == "en" else "详细课程内容正在补充。")
+    fallback = f"# Week {lesson.week} — {title_for(lesson, lang)}\n\n" + (
+        "Detailed lesson content is being prepared." if lang == "en" else "详细课程内容正在补充。"
     )
     return fallback, ""

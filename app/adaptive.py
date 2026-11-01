@@ -243,10 +243,24 @@ def recent_assessments(limit: int = 20) -> list[dict[str, Any]]:
         item = dict(raw)
         lesson_key = item.get("scope_key") if item.get("mode") == "weekly" else item.get("lesson_key")
         label = lesson_key.replace("week", "W") if isinstance(lesson_key, str) else "Exam"
-        events.append({"kind": "exam", "label": label, "score": round(float(item.get("percent") or 0), 1), "at": item.get("submitted_at") or ""})
+        events.append(
+            {
+                "kind": "exam",
+                "label": label,
+                "score": round(float(item.get("percent") or 0), 1),
+                "at": item.get("submitted_at") or "",
+            }
+        )
     for raw in code_rows:
         item = dict(raw)
-        events.append({"kind": "code", "label": item["lesson_key"].replace("week", "W") + " Code", "score": round(float(item.get("score_percent") or 0), 1), "at": item.get("created_at") or ""})
+        events.append(
+            {
+                "kind": "code",
+                "label": item["lesson_key"].replace("week", "W") + " Code",
+                "score": round(float(item.get("score_percent") or 0), 1),
+                "at": item.get("created_at") or "",
+            }
+        )
     events.sort(key=lambda x: x["at"])
     return events[-limit:]
 
@@ -282,7 +296,10 @@ def adaptive_dashboard(request: Request):
     domains = domain_profile(profile, lang)
     recs = recommendations(profile)
     mastery_items = sorted(profile.values(), key=lambda x: (x["status"] == "unseen", -x["priority"], x["tag"]))
-    distribution = {key: sum(1 for x in profile.values() if x["status"] == key) for key in ("weak", "developing", "proficient", "mastered", "unseen")}
+    distribution = {
+        key: sum(1 for x in profile.values() if x["status"] == key)
+        for key in ("weak", "developing", "proficient", "mastered", "unseen")
+    }
     c = _nav(request, lang)
     c.update(
         {

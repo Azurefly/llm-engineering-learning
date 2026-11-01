@@ -48,7 +48,9 @@ def test_random_exam_creates_snapshot_runtime_and_can_be_opened():
         assert page.status_code == 200
         assert "SYSTEM-GRADED EXAM · V3" in page.text
         with db.connect() as conn:
-            count = conn.execute("SELECT COUNT(*) FROM exam_attempt_questions WHERE attempt_id=?", (attempt_id,)).fetchone()[0]
+            count = conn.execute(
+                "SELECT COUNT(*) FROM exam_attempt_questions WHERE attempt_id=?", (attempt_id,)
+            ).fetchone()[0]
             runtime = conn.execute("SELECT * FROM exam_runtime WHERE attempt_id=?", (attempt_id,)).fetchone()
         assert count == 6
         assert runtime is not None

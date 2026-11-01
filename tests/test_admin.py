@@ -38,7 +38,10 @@ def test_first_user_is_superadmin_and_regular_user_cannot_open_admin(monkeypatch
     root = store.get_user_by_username("rootadmin")
     assert root and root["role"] == "superadmin"
     assert admin_client.get("/admin/users").status_code == 200
-    assert "用户管理" in admin_client.get("/admin/users").text or "User Administration" in admin_client.get("/admin/users").text
+    assert (
+        "用户管理" in admin_client.get("/admin/users").text
+        or "User Administration" in admin_client.get("/admin/users").text
+    )
 
     user_client = TestClient(app)
     assert _register(user_client, "student", "student-password-123", "Student").status_code == 303
@@ -195,7 +198,15 @@ def test_existing_account_database_is_migrated_to_have_a_superadmin(tmp_path):
         conn.execute(
             """INSERT INTO users(username,username_key,display_name,password_hash,storage_key,created_at,updated_at)
                VALUES(?,?,?,?,?,?,?)""",
-            ("legacy", "legacy", "Legacy", hash_password("legacy-password-123"), "legacy-storage", "2026-01-01", "2026-01-01"),
+            (
+                "legacy",
+                "legacy",
+                "Legacy",
+                hash_password("legacy-password-123"),
+                "legacy-storage",
+                "2026-01-01",
+                "2026-01-01",
+            ),
         )
     store = AccountStore(path)
     migrated = store.get_user_by_username("legacy")

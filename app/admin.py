@@ -53,7 +53,9 @@ def account_page(request: Request):
     lang = _lang(request)
     fresh = account_store().get_user_by_id(int(current["id"])) or current
     c = _nav(request, lang)
-    c.update({"account": fresh, "status": request.query_params.get("status"), "error": request.query_params.get("error")})
+    c.update(
+        {"account": fresh, "status": request.query_params.get("status"), "error": request.query_params.get("error")}
+    )
     return templates.TemplateResponse(request=request, name="account.html", context=c)
 
 

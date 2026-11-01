@@ -4,6 +4,10 @@
 target-version = "py311"
 line-length = 120
 src = ["."]
+# Documentation code samples are illustrative snippets, not runnable modules.
+# Formatting them rewrites teaching material (`def f():\n    ...` becomes
+# `def f(): ...`), so the formatter and linter stay out of docs/.
+extend-exclude = ["docs"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM", "PIE"]

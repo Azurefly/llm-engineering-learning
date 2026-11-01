@@ -5,17 +5,17 @@ from app.db import Database
 
 
 def test_auto_backup_skips_empty_database(tmp_path, monkeypatch):
-    monkeypatch.setenv('LLM_AUTO_BACKUP', '1')
-    db = Database(tmp_path / 'learning.db')
+    monkeypatch.setenv("LLM_AUTO_BACKUP", "1")
+    db = Database(tmp_path / "learning.db")
     assert maybe_create_auto_backup(db, now=datetime(2026, 8, 17, tzinfo=UTC)) is None
 
 
 def test_auto_backup_is_daily_and_retained(tmp_path, monkeypatch):
-    monkeypatch.setenv('LLM_AUTO_BACKUP', '1')
-    monkeypatch.setenv('LLM_AUTO_BACKUP_HOURS', '24')
-    monkeypatch.setenv('LLM_AUTO_BACKUP_KEEP', '2')
-    db = Database(tmp_path / 'learning.db')
-    db.save_thought(None, title='backup me', content='content', tags='', lesson_key='week01', language='en')
+    monkeypatch.setenv("LLM_AUTO_BACKUP", "1")
+    monkeypatch.setenv("LLM_AUTO_BACKUP_HOURS", "24")
+    monkeypatch.setenv("LLM_AUTO_BACKUP_KEEP", "2")
+    db = Database(tmp_path / "learning.db")
+    db.save_thought(None, title="backup me", content="content", tags="", lesson_key="week01", language="en")
 
     base = datetime(2026, 8, 14, 8, 0, 0, tzinfo=UTC)
     first = maybe_create_auto_backup(db, now=base)
@@ -24,6 +24,6 @@ def test_auto_backup_is_daily_and_retained(tmp_path, monkeypatch):
     second = maybe_create_auto_backup(db, now=base + timedelta(days=1, minutes=1))
     third = maybe_create_auto_backup(db, now=base + timedelta(days=2, minutes=2))
     assert second and third
-    files = sorted((tmp_path / 'backups').glob('auto-*.json'))
+    files = sorted((tmp_path / "backups").glob("auto-*.json"))
     assert len(files) == 2
     assert first not in files
