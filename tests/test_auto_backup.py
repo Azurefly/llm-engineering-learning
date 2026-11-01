@@ -1,13 +1,13 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from app.auto_backup import maybe_create_auto_backup
-from app.db import Database, now_iso
+from app.db import Database
 
 
 def test_auto_backup_skips_empty_database(tmp_path, monkeypatch):
     monkeypatch.setenv('LLM_AUTO_BACKUP', '1')
     db = Database(tmp_path / 'learning.db')
-    assert maybe_create_auto_backup(db, now=datetime(2026, 8, 17, tzinfo=timezone.utc)) is None
+    assert maybe_create_auto_backup(db, now=datetime(2026, 8, 17, tzinfo=UTC)) is None
 
 
 def test_auto_backup_is_daily_and_retained(tmp_path, monkeypatch):
@@ -17,7 +17,7 @@ def test_auto_backup_is_daily_and_retained(tmp_path, monkeypatch):
     db = Database(tmp_path / 'learning.db')
     db.save_thought(None, title='backup me', content='content', tags='', lesson_key='week01', language='en')
 
-    base = datetime(2026, 8, 14, 8, 0, 0, tzinfo=timezone.utc)
+    base = datetime(2026, 8, 14, 8, 0, 0, tzinfo=UTC)
     first = maybe_create_auto_backup(db, now=base)
     assert first and first.exists()
     assert maybe_create_auto_backup(db, now=base + timedelta(hours=1)) is None

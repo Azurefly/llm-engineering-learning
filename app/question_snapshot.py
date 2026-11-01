@@ -131,9 +131,9 @@ def install() -> None:
         if module is None:
             continue
         if hasattr(module, "_create_attempt"):
-            setattr(module, "_create_attempt", _create_attempt_snapshot)
+            module._create_attempt = _create_attempt_snapshot
         if hasattr(module, "_selected_questions"):
-            setattr(module, "_selected_questions", _selected_questions_snapshot)
+            module._selected_questions = _selected_questions_snapshot
 
 
 install()

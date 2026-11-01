@@ -2,8 +2,8 @@ from dataclasses import replace
 
 from fastapi.testclient import TestClient
 
-from app.current import app
 from app import exam_v2
+from app.current import app
 
 client = TestClient(app)
 

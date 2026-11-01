@@ -1,5 +1,5 @@
-from app.current import app  # noqa: F401 - installs the expanded bank
 from app.bank_quality import MIN_QUESTIONS_PER_WEEK, validate_question_bank
+from app.current import app  # noqa: F401 - installs the expanded bank
 
 
 def test_question_bank_quality_gate():

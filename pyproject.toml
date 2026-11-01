@@ -1,0 +1,48 @@
+[tool.ruff]
+# Pinned explicitly instead of relying on ruff's defaults: the toolchain must
+# behave the same locally and in CI even after a ruff upgrade.
+target-version = "py311"
+line-length = 120
+src = ["."]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM", "PIE"]
+
+ignore = [
+    # This codebase deliberately uses compact one-line statements
+    # (`ctx = _nav(request, lang); ctx["x"] = ...`). Splitting them would touch
+    # most of the repository without changing behaviour.
+    "E701",
+    "E702",
+    # `l` as a loop variable over LESSONS is used consistently across routers.
+    "E741",
+    # FastAPI requires dependency and upload declarations in the signature.
+    "B008",
+]
+
+# Intentional patterns in this codebase rather than defects.
+[tool.ruff.lint.per-file-ignores]
+# Versioned entrypoints re-export routers purely for their import side effects.
+"app/main_v*.py" = ["F401"]
+# Installers attach runtime overrides to imported modules on purpose.
+"app/current.py" = ["F401"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["app"]
+
+[tool.coverage.report]
+# The floor guards against silent coverage regressions. It sits slightly below
+# the measured value so an unrelated refactor does not fail the build, while a
+# new untested module still does.
+fail_under = 88
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

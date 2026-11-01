@@ -8,10 +8,11 @@ import secrets
 import sqlite3
 import unicodedata
 import uuid
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable, Iterator
+from typing import Any
 from urllib.parse import quote
 
 from fastapi import APIRouter, FastAPI, Form, HTTPException, Request
@@ -49,7 +50,7 @@ def _session_days() -> int:
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _now_iso() -> str:
@@ -478,7 +479,7 @@ def logout(request: Request):
 
 
 def _is_public(path: str) -> bool:
-    return path in PUBLIC_PATHS or path.startswith("/static/") or path.startswith("/language/")
+    return path in PUBLIC_PATHS or path.startswith(("/static/", "/language/"))
 
 
 def _wants_html(request: Request) -> bool:

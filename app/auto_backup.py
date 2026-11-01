@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from .backup import export_all_json
@@ -11,7 +11,7 @@ from .db import Database
 def _parse_stamp(path: Path) -> datetime | None:
     try:
         stamp = path.stem.removeprefix("auto-")
-        return datetime.strptime(stamp, "%Y%m%d-%H%M%S").replace(tzinfo=timezone.utc)
+        return datetime.strptime(stamp, "%Y%m%d-%H%M%S").replace(tzinfo=UTC)
     except (ValueError, AttributeError):
         return None
 
@@ -19,7 +19,7 @@ def _parse_stamp(path: Path) -> datetime | None:
 def maybe_create_auto_backup(db: Database, *, now: datetime | None = None) -> Path | None:
     if os.getenv("LLM_AUTO_BACKUP", "1").strip().lower() in {"0", "false", "no", "off"}:
         return None
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     backup_dir = db.backup_dir
     backup_dir.mkdir(parents=True, exist_ok=True)
     files = sorted(backup_dir.glob("auto-*.json"), reverse=True)

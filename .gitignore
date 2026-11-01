@@ -4,6 +4,11 @@ __pycache__/
 venv/
 .pytest_cache/
 
+# Coverage artifacts produced by the verified test toolchain.
+.coverage
+.coverage.*
+htmlcov/
+
 # All files under data/ are private local learning state: SQLite, WAL files,
 # restore snapshots, notes/resources embedded in backups, etc. Keep only the
 # empty directory marker in Git.

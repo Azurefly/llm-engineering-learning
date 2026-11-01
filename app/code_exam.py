@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from .code_runner import CodeRunRequest, get_code_runner
-from .course import LESSONS, LESSON_MAP, title_for
+from .course import LESSON_MAP, LESSONS, title_for
 from .db import Database, now_iso
 from .exam_v2 import DB_PATH
 from .i18n import normalize_lang, tr

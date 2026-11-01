@@ -64,7 +64,7 @@ def _seed_learning(storage_key: str, *, progress: list[tuple[str, str, int, floa
             );
             """
         )
-        for index, (percent, passed) in enumerate(exam_scores):
+        for percent, passed in exam_scores:
             conn.execute(
                 """INSERT INTO exam_attempts(lesson_key,language,status,started_at,submitted_at,score,max_score,percent,passed,pass_score)
                    VALUES(?,?,?,?,?,?,?,?,?,?)""",

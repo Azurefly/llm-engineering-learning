@@ -12,9 +12,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .backup import export_all_json
-from .course import LESSONS, LESSON_MAP, load_lesson_markdown, title_for
+from .course import LESSON_MAP, LESSONS, load_lesson_markdown, title_for
 from .db import Database
-from .exam_system import exam_summary, router as exam_router
+from .exam_system import exam_summary
+from .exam_system import router as exam_router
 from .i18n import normalize_lang, tr
 
 APP_DIR = Path(__file__).resolve().parent

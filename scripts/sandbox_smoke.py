@@ -3,7 +3,6 @@ from tempfile import TemporaryDirectory
 
 from app.code_runner import CodeRunRequest, DockerSandboxCodeRunner
 
-
 SOURCE = """def add(a, b):
     return a + b
 """

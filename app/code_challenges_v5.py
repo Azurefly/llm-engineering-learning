@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from .code_exam import CHALLENGES, CodeChallenge
 
-
 EXTRA_CHALLENGES: dict[str, CodeChallenge] = {
     "week03": CodeChallenge(
         "context-budget",
