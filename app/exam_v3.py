@@ -82,7 +82,14 @@ def _ensure_runtime(attempt: dict[str, Any]) -> dict[str, Any]:
             "INSERT INTO exam_runtime(attempt_id,duration_seconds,deadline_at,draft_json) VALUES(?,?,?,?)",
             (attempt["id"], duration, deadline, "{}"),
         )
-    return {"attempt_id": attempt["id"], "duration_seconds": duration, "deadline_at": deadline, "draft_json": "{}", "last_saved_at": None, "auto_submitted": 0}
+    return {
+        "attempt_id": attempt["id"],
+        "duration_seconds": duration,
+        "deadline_at": deadline,
+        "draft_json": "{}",
+        "last_saved_at": None,
+        "auto_submitted": 0,
+    }
 
 
 def _remaining(runtime: dict[str, Any]) -> int:
@@ -128,7 +135,18 @@ def _auto_submit(attempt: dict[str, Any], runtime: dict[str, Any]) -> None:
         conn.execute("UPDATE exam_runtime SET auto_submitted=1 WHERE attempt_id=?", (attempt["id"],))
 
 
-def _create_runtime_attempt(*, lesson_key: str, lang: str, mode: str, scope_key: str, title_zh: str, title_en: str, selected, pass_score: int, seed: int) -> int:
+def _create_runtime_attempt(
+    *,
+    lesson_key: str,
+    lang: str,
+    mode: str,
+    scope_key: str,
+    title_zh: str,
+    title_en: str,
+    selected,
+    pass_score: int,
+    seed: int,
+) -> int:
     attempt_id = _create_attempt(
         lesson_key=lesson_key,
         lang=lang,

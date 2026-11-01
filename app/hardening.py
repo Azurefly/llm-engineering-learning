@@ -49,9 +49,8 @@ def install_security_headers(app: FastAPI) -> None:
         response.headers.setdefault("Referrer-Policy", "same-origin")
         response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
-        sensitive = (
-            request.url.path in {"/backup.json", "/api/diagnostics", "/account"}
-            or request.url.path.startswith("/admin/")
+        sensitive = request.url.path in {"/backup.json", "/api/diagnostics", "/account"} or request.url.path.startswith(
+            "/admin/"
         )
         if sensitive:
             response.headers.setdefault("Cache-Control", "no-store")

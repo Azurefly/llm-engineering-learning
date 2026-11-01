@@ -161,7 +161,11 @@ def collect_admin_report() -> dict[str, Any]:
 
     weighted_exam_pass = sum((u["exam_pass_rate"] or 0) * u["exam_attempts"] for u in users)
     weighted_code_pass = sum((u["code_pass_rate"] or 0) * u["code_attempts"] for u in users)
-    active_7d = sum(1 for u in enabled_users if (_parse_time(u.get("last_activity")) or datetime.min.replace(tzinfo=UTC)) >= now - timedelta(days=7))
+    active_7d = sum(
+        1
+        for u in enabled_users
+        if (_parse_time(u.get("last_activity")) or datetime.min.replace(tzinfo=UTC)) >= now - timedelta(days=7)
+    )
 
     week_stats: list[dict[str, Any]] = []
     for lesson in LESSONS:
@@ -182,7 +186,11 @@ def collect_admin_report() -> dict[str, Any]:
     for user in users:
         bands[_progress_band(float(user["overall_progress"]))] += 1
 
-    users_sorted = sorted(users, key=lambda u: (float(u["overall_progress"]), int(u["completed_lessons"]), int(u["exam_attempts"])), reverse=True)
+    users_sorted = sorted(
+        users,
+        key=lambda u: (float(u["overall_progress"]), int(u["completed_lessons"]), int(u["exam_attempts"])),
+        reverse=True,
+    )
     return {
         "users": users_sorted,
         "week_stats": week_stats,

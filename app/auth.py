@@ -168,7 +168,10 @@ class AccountStore:
             has_users = int(conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]) > 0
             has_admin = int(conn.execute("SELECT COUNT(*) FROM users WHERE role='superadmin'").fetchone()[0]) > 0
             if has_users and not has_admin:
-                conn.execute("UPDATE users SET role='superadmin',updated_at=? WHERE id=(SELECT MIN(id) FROM users)", (_now_iso(),))
+                conn.execute(
+                    "UPDATE users SET role='superadmin',updated_at=? WHERE id=(SELECT MIN(id) FROM users)",
+                    (_now_iso(),),
+                )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_users_role_active ON users(role,is_active,id)")
 
     def user_count(self) -> int:
@@ -238,7 +241,13 @@ class AccountStore:
             conn.execute("DELETE FROM auth_sessions WHERE expires_at < ?", (_now_iso(),))
             conn.execute(
                 "INSERT INTO auth_sessions(token_hash,user_id,created_at,expires_at,last_seen_at) VALUES(?,?,?,?,?)",
-                (_token_hash(token), int(user_id), created.isoformat(timespec="seconds"), expires.isoformat(timespec="seconds"), created.isoformat(timespec="seconds")),
+                (
+                    _token_hash(token),
+                    int(user_id),
+                    created.isoformat(timespec="seconds"),
+                    expires.isoformat(timespec="seconds"),
+                    created.isoformat(timespec="seconds"),
+                ),
             )
         return token
 
@@ -290,10 +299,16 @@ class AccountStore:
             if not row:
                 raise ValueError("用户不存在。")
             if not active and row["role"] == "superadmin":
-                others = int(conn.execute("SELECT COUNT(*) FROM users WHERE role='superadmin' AND is_active=1 AND id<>?", (user_id,)).fetchone()[0])
+                others = int(
+                    conn.execute(
+                        "SELECT COUNT(*) FROM users WHERE role='superadmin' AND is_active=1 AND id<>?", (user_id,)
+                    ).fetchone()[0]
+                )
                 if others == 0:
                     raise ValueError("系统至少需要保留一个启用状态的超级管理员。")
-            conn.execute("UPDATE users SET is_active=?,updated_at=? WHERE id=?", (1 if active else 0, _now_iso(), user_id))
+            conn.execute(
+                "UPDATE users SET is_active=?,updated_at=? WHERE id=?", (1 if active else 0, _now_iso(), user_id)
+            )
             if not active:
                 conn.execute("DELETE FROM auth_sessions WHERE user_id=?", (user_id,))
 
@@ -310,7 +325,11 @@ class AccountStore:
             if not row:
                 raise ValueError("用户不存在。")
             if row["role"] == "superadmin" and role != "superadmin":
-                others = int(conn.execute("SELECT COUNT(*) FROM users WHERE role='superadmin' AND is_active=1 AND id<>?", (user_id,)).fetchone()[0])
+                others = int(
+                    conn.execute(
+                        "SELECT COUNT(*) FROM users WHERE role='superadmin' AND is_active=1 AND id<>?", (user_id,)
+                    ).fetchone()[0]
+                )
                 if others == 0:
                     raise ValueError("系统至少需要保留一个启用状态的超级管理员。")
             conn.execute("UPDATE users SET role=?,updated_at=? WHERE id=?", (role, _now_iso(), user_id))
@@ -354,8 +373,17 @@ def _legacy_has_learning_data(path: Path) -> bool:
         return False
     try:
         with sqlite3.connect(path) as conn:
-            tables = {str(row[0]) for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-            for table in ("lesson_progress", "thoughts", "resources", "exam_attempts", "code_attempts", "adaptive_sessions"):
+            tables = {
+                str(row[0]) for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+            }
+            for table in (
+                "lesson_progress",
+                "thoughts",
+                "resources",
+                "exam_attempts",
+                "code_attempts",
+                "adaptive_sessions",
+            ):
                 if table in tables and int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]) > 0:
                     return True
     except sqlite3.DatabaseError:
@@ -382,7 +410,12 @@ def _safe_next(value: str | None) -> str:
 
 
 def _set_session_cookie(response: RedirectResponse, request: Request, token: str) -> None:
-    secure = request.url.scheme == "https" or os.getenv("LLM_COOKIE_SECURE", "0").strip().lower() in {"1", "true", "yes", "on"}
+    secure = request.url.scheme == "https" or os.getenv("LLM_COOKIE_SECURE", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     response.set_cookie(
         SESSION_COOKIE,
         token,
@@ -394,7 +427,15 @@ def _set_session_cookie(response: RedirectResponse, request: Request, token: str
     )
 
 
-def _render_auth(request: Request, template: str, *, error: str | None = None, username: str = "", display_name: str = "", status_code: int = 200):
+def _render_auth(
+    request: Request,
+    template: str,
+    *,
+    error: str | None = None,
+    username: str = "",
+    display_name: str = "",
+    status_code: int = 200,
+):
     lang = "en" if (request.cookies.get("lang") or "").lower() == "en" else "zh-CN"
     return templates.TemplateResponse(
         request=request,
@@ -423,7 +464,9 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     if getattr(request.state, "user", None):
         return RedirectResponse("/", status_code=303)
     if len(username) > 64 or len(password) > 128:
-        return _render_auth(request, "login.html", error="用户名或密码不正确。", username=username[:64], status_code=400)
+        return _render_auth(
+            request, "login.html", error="用户名或密码不正确。", username=username[:64], status_code=400
+        )
     user = account_store().verify_login(username, password)
     if not user:
         return _render_auth(request, "login.html", error="用户名或密码不正确。", username=username, status_code=401)
@@ -456,11 +499,15 @@ def register(
     if password != password_confirm:
         error = error or "两次输入的密码不一致。"
     if error:
-        return _render_auth(request, "register.html", error=error, username=username, display_name=display_name, status_code=400)
+        return _render_auth(
+            request, "register.html", error=error, username=username, display_name=display_name, status_code=400
+        )
     try:
         user, is_first = account_store().create_user(username, display_name, password)
     except ValueError as exc:
-        return _render_auth(request, "register.html", error=str(exc), username=username, display_name=display_name, status_code=409)
+        return _render_auth(
+            request, "register.html", error=str(exc), username=username, display_name=display_name, status_code=409
+        )
     if is_first:
         claim_legacy_learning_data(str(user["storage_key"]))
     token = account_store().create_session(int(user["id"]))
@@ -495,7 +542,13 @@ def install_auth(app: FastAPI, *, initializer: Callable[[], None] | None = None)
     @app.middleware("http")
     async def authentication(request: Request, call_next):
         if os.getenv("LLM_AUTH_TEST_BYPASS", "0").strip().lower() in {"1", "true", "yes", "on"}:
-            request.state.user = {"id": 0, "username": "test", "display_name": "Test User", "storage_key": "test", "role": "superadmin"}
+            request.state.user = {
+                "id": 0,
+                "username": "test",
+                "display_name": "Test User",
+                "storage_key": "test",
+                "role": "superadmin",
+            }
             return await call_next(request)
 
         store = account_store()
@@ -507,9 +560,13 @@ def install_auth(app: FastAPI, *, initializer: Callable[[], None] | None = None)
                 response.headers.setdefault("Cache-Control", "no-store")
                 return response
             if _wants_html(request):
-                target = quote(_safe_next(request.url.path + ("?" + request.url.query if request.url.query else "")), safe="/?=&%")
+                target = quote(
+                    _safe_next(request.url.path + ("?" + request.url.query if request.url.query else "")), safe="/?=&%"
+                )
                 return RedirectResponse(f"/login?next={target}", status_code=303)
-            return JSONResponse({"detail": "Authentication required"}, status_code=401, headers={"Cache-Control": "no-store"})
+            return JSONResponse(
+                {"detail": "Authentication required"}, status_code=401, headers={"Cache-Control": "no-store"}
+            )
 
         ctx = UserContext(
             user_id=int(user["id"]),

@@ -78,6 +78,8 @@ jobs:
         run: pip install -r requirements-dev.lock.txt
       - name: Lint
         run: ruff check .
+      - name: Check formatting
+        run: ruff format --check .
 
   security-audit:
     name: dependency audit

@@ -62,8 +62,18 @@ def init_tables() -> None:
 init_tables()
 
 
-def _create_attempt_snapshot(*, lesson_key: str, lang: str, mode: str, scope_key: str, title_zh: str, title_en: str,
-                             selected: list[tuple[str, Question]], pass_score: int, seed: int) -> int:
+def _create_attempt_snapshot(
+    *,
+    lesson_key: str,
+    lang: str,
+    mode: str,
+    scope_key: str,
+    title_zh: str,
+    title_en: str,
+    selected: list[tuple[str, Question]],
+    pass_score: int,
+    seed: int,
+) -> int:
     attempt_id = _ORIGINAL_CREATE(
         lesson_key=lesson_key,
         lang=lang,

@@ -128,7 +128,9 @@ class Database:
             row = conn.execute("SELECT * FROM thoughts WHERE id=?", (item_id,)).fetchone()
         return dict(row) if row else None
 
-    def save_thought(self, item_id: int | None, *, title: str, content: str, tags: str, lesson_key: str | None, language: str) -> int:
+    def save_thought(
+        self, item_id: int | None, *, title: str, content: str, tags: str, lesson_key: str | None, language: str
+    ) -> int:
         ts = now_iso()
         with self.connect() as conn:
             if item_id:
@@ -160,7 +162,17 @@ class Database:
             row = conn.execute("SELECT * FROM resources WHERE id=?", (item_id,)).fetchone()
         return dict(row) if row else None
 
-    def save_resource(self, item_id: int | None, *, title: str, url: str, description: str, tags: str, lesson_key: str | None, language: str) -> int:
+    def save_resource(
+        self,
+        item_id: int | None,
+        *,
+        title: str,
+        url: str,
+        description: str,
+        tags: str,
+        lesson_key: str | None,
+        language: str,
+    ) -> int:
         ts = now_iso()
         with self.connect() as conn:
             if item_id:
@@ -184,7 +196,9 @@ class Database:
             return {
                 "thought_count": conn.execute("SELECT COUNT(*) FROM thoughts").fetchone()[0],
                 "resource_count": conn.execute("SELECT COUNT(*) FROM resources").fetchone()[0],
-                "completed": conn.execute("SELECT COUNT(*) FROM lesson_progress WHERE status='completed'").fetchone()[0],
+                "completed": conn.execute("SELECT COUNT(*) FROM lesson_progress WHERE status='completed'").fetchone()[
+                    0
+                ],
             }
 
     def export_json(self) -> str:

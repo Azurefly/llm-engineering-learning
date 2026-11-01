@@ -26,11 +26,20 @@ def _login(client: TestClient, username: str, password: str):
     )
 
 
-def _seed_learning(storage_key: str, *, progress: list[tuple[str, str, int, float | None]], exam_scores: list[tuple[float, bool]], code_scores: list[tuple[float, bool]], private_note: str):
+def _seed_learning(
+    storage_key: str,
+    *,
+    progress: list[tuple[str, str, int, float | None]],
+    exam_scores: list[tuple[float, bool]],
+    code_scores: list[tuple[float, bool]],
+    private_note: str,
+):
     db = Database(user_learning_path(storage_key))
     for lesson_key, status, percent, score in progress:
         db.set_progress(lesson_key, status, percent, score)
-    db.save_thought(None, title=private_note, content="private-content", tags="secret", lesson_key="week01", language="zh-CN")
+    db.save_thought(
+        None, title=private_note, content="private-content", tags="secret", lesson_key="week01", language="zh-CN"
+    )
 
     with db.connect() as conn:
         conn.executescript(
@@ -74,7 +83,16 @@ def _seed_learning(storage_key: str, *, progress: list[tuple[str, str, int, floa
             conn.execute(
                 """INSERT INTO code_attempts(lesson_key,challenge_key,source_code,score_percent,passed,passed_tests,total_tests,created_at)
                    VALUES(?,?,?,?,?,?,?,?)""",
-                ("week02", f"challenge-{index}", "# private source is not reported", percent, 1 if passed else 0, 1 if passed else 0, 1, now_iso()),
+                (
+                    "week02",
+                    f"challenge-{index}",
+                    "# private source is not reported",
+                    percent,
+                    1 if passed else 0,
+                    1 if passed else 0,
+                    1,
+                    now_iso(),
+                ),
             )
 
 
@@ -105,7 +123,11 @@ def test_superadmin_report_aggregates_all_progress_without_private_content(monke
     )
     _seed_learning(
         student["storage_key"],
-        progress=[("week00", "completed", 100, 86), ("week01", "completed", 100, 88), ("week02", "in_progress", 40, None)],
+        progress=[
+            ("week00", "completed", 100, 86),
+            ("week01", "completed", 100, 88),
+            ("week02", "in_progress", 40, None),
+        ],
         exam_scores=[(60, False), (85, True)],
         code_scores=[(50, False), (90, True)],
         private_note="STUDENT-PRIVATE-NOTE-DO-NOT-LEAK",
@@ -191,11 +213,14 @@ def test_superadmin_can_stop_and_restart_public_registration_without_restart(mon
 
     regular = TestClient(app)
     assert _login(regular, "inviteduser", "invited-password-123").status_code == 303
-    assert regular.post(
-        "/admin/settings/registration",
-        data={"action": "enable", "next": "/"},
-        follow_redirects=False,
-    ).status_code == 403
+    assert (
+        regular.post(
+            "/admin/settings/registration",
+            data={"action": "enable", "next": "/"},
+            follow_redirects=False,
+        ).status_code
+        == 403
+    )
 
     enabled = admin_client.post(
         "/admin/settings/registration",

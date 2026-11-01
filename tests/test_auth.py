@@ -37,11 +37,14 @@ def test_registration_login_and_physical_user_isolation(monkeypatch, tmp_path):
     )
     assert r.status_code == 303
     assert client.get("/").status_code == 200
-    assert client.post(
-        "/thoughts/save",
-        data={"title": "Alice private note", "content": "alice-secret", "tags": "private", "lesson_key": "week01"},
-        follow_redirects=False,
-    ).status_code == 303
+    assert (
+        client.post(
+            "/thoughts/save",
+            data={"title": "Alice private note", "content": "alice-secret", "tags": "private", "lesson_key": "week01"},
+            follow_redirects=False,
+        ).status_code
+        == 303
+    )
 
     assert client.post("/logout", follow_redirects=False).status_code == 303
     assert client.get("/", follow_redirects=False).status_code == 303
@@ -64,11 +67,14 @@ def test_registration_login_and_physical_user_isolation(monkeypatch, tmp_path):
         follow_redirects=False,
     )
     assert r.status_code == 303
-    assert client.post(
-        "/thoughts/save",
-        data={"title": "Bob private note", "content": "bob-secret", "tags": "private", "lesson_key": "week02"},
-        follow_redirects=False,
-    ).status_code == 303
+    assert (
+        client.post(
+            "/thoughts/save",
+            data={"title": "Bob private note", "content": "bob-secret", "tags": "private", "lesson_key": "week02"},
+            follow_redirects=False,
+        ).status_code
+        == 303
+    )
 
     bob_page = client.get("/thoughts")
     assert "Bob private note" in bob_page.text
@@ -153,6 +159,11 @@ def test_registration_can_be_disabled(monkeypatch, tmp_path):
     assert page.status_code == 403
     blocked = client.post(
         "/register",
-        data={"username": "newuser", "display_name": "New", "password": "password-123", "password_confirm": "password-123"},
+        data={
+            "username": "newuser",
+            "display_name": "New",
+            "password": "password-123",
+            "password_confirm": "password-123",
+        },
     )
     assert blocked.status_code == 403

@@ -13,7 +13,13 @@ def _cleanup(session_id: int) -> None:
         conn.execute("DELETE FROM adaptive_session_items WHERE session_id=?", (session_id,))
         conn.execute("DELETE FROM adaptive_sessions WHERE id=?", (session_id,))
         if attempt_id:
-            for table in ("exam_runtime", "exam_answers", "exam_question_snapshots", "exam_attempt_questions", "exam_v2_meta"):
+            for table in (
+                "exam_runtime",
+                "exam_answers",
+                "exam_question_snapshots",
+                "exam_attempt_questions",
+                "exam_v2_meta",
+            ):
                 conn.execute(f"DELETE FROM {table} WHERE attempt_id=?", (attempt_id,))
             conn.execute("DELETE FROM exam_attempts WHERE id=?", (attempt_id,))
 
@@ -43,7 +49,7 @@ def test_sequential_adaptive_session_is_resumable_and_immutable():
         first = client.get(f"/adaptive-test/{session_id}")
         assert first.status_code == 200
         assert "CAT" in first.text
-        resumed = client.get('/adaptive-test')
+        resumed = client.get("/adaptive-test")
         assert resumed.status_code == 200
         assert f"#{session_id}" in resumed.text
 
@@ -53,7 +59,7 @@ def test_sequential_adaptive_session_is_resumable_and_immutable():
                 (session_id,),
             ).fetchone()
         assert first_row[0]
-        assert first_row[1] and 'question' not in first_row[1].lower()
+        assert first_row[1] and "question" not in first_row[1].lower()
 
         answer1 = client.post(f"/adaptive-test/{session_id}/answer", data={}, follow_redirects=False)
         assert answer1.status_code == 303
@@ -73,12 +79,18 @@ def test_sequential_adaptive_session_is_resumable_and_immutable():
         assert answer2.headers["location"].endswith("/result")
 
         with db.connect() as conn:
-            session = conn.execute("SELECT status,exam_attempt_id FROM adaptive_sessions WHERE id=?", (session_id,)).fetchone()
+            session = conn.execute(
+                "SELECT status,exam_attempt_id FROM adaptive_sessions WHERE id=?", (session_id,)
+            ).fetchone()
             assert session[0] == "completed"
             attempt_id = int(session[1])
             mode = conn.execute("SELECT mode FROM exam_v2_meta WHERE attempt_id=?", (attempt_id,)).fetchone()[0]
-            answer_count = conn.execute("SELECT COUNT(*) FROM exam_answers WHERE attempt_id=?", (attempt_id,)).fetchone()[0]
-            snapshots = conn.execute("SELECT COUNT(*) FROM exam_question_snapshots WHERE attempt_id=?", (attempt_id,)).fetchone()[0]
+            answer_count = conn.execute(
+                "SELECT COUNT(*) FROM exam_answers WHERE attempt_id=?", (attempt_id,)
+            ).fetchone()[0]
+            snapshots = conn.execute(
+                "SELECT COUNT(*) FROM exam_question_snapshots WHERE attempt_id=?", (attempt_id,)
+            ).fetchone()[0]
         assert mode == "adaptive-sequential"
         assert answer_count == 2
         assert snapshots == 2

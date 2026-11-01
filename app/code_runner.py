@@ -35,8 +35,7 @@ class CodeRunResult:
 class CodeRunner(Protocol):
     """Execution boundary for untrusted learner code."""
 
-    def run(self, request: CodeRunRequest, workspace: Path) -> CodeRunResult:
-        ...
+    def run(self, request: CodeRunRequest, workspace: Path) -> CodeRunResult: ...
 
 
 class DisabledCodeRunner:

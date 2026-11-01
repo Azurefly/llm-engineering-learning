@@ -15,11 +15,13 @@ def _cleanup_attempt(attempt_id: int) -> None:
 
 
 def test_mastery_uses_recency_and_reports_confidence():
-    summary = _mastery_from_evidence([
-        {"score": 100, "source_weight": 1.0},
-        {"score": 0, "source_weight": 1.0},
-        {"score": 0, "source_weight": 1.0},
-    ])
+    summary = _mastery_from_evidence(
+        [
+            {"score": 100, "source_weight": 1.0},
+            {"score": 0, "source_weight": 1.0},
+            {"score": 0, "source_weight": 1.0},
+        ]
+    )
     assert 30 < summary["score"] < 50
     assert summary["evidence_count"] == 3
     assert summary["confidence"] == 0.6
@@ -66,7 +68,9 @@ def test_failed_exam_creates_weakness_renders_recommendation_and_builds_review_e
         review_attempt = int(review.headers["location"].rsplit("/", 1)[-1])
         with db.connect() as conn:
             row = conn.execute("SELECT mode FROM exam_v2_meta WHERE attempt_id=?", (review_attempt,)).fetchone()
-            count = conn.execute("SELECT COUNT(*) FROM exam_attempt_questions WHERE attempt_id=?", (review_attempt,)).fetchone()[0]
+            count = conn.execute(
+                "SELECT COUNT(*) FROM exam_attempt_questions WHERE attempt_id=?", (review_attempt,)
+            ).fetchone()[0]
         assert row[0] == "adaptive"
         assert count > 0
     finally:

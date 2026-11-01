@@ -38,7 +38,14 @@ def search_workspace(query: str, lang: str, limit: int = 50) -> list[dict[str, A
         text, _ = load_lesson_markdown(REPO_ROOT, lesson, lang)
         title = title_for(lesson, lang)
         if needle in title.lower() or needle in text.lower():
-            results.append({"kind": "course", "title": f"Week {lesson.week} · {title}", "snippet": _snippet(text, q), "url": f"/course/{lesson.key}"})
+            results.append(
+                {
+                    "kind": "course",
+                    "title": f"Week {lesson.week} · {title}",
+                    "snippet": _snippet(text, q),
+                    "url": f"/course/{lesson.key}",
+                }
+            )
 
     with db.connect() as conn:
         pattern = f"%{q}%"
@@ -57,10 +64,24 @@ def search_workspace(query: str, lang: str, limit: int = 50) -> list[dict[str, A
 
     for row in thoughts:
         item = dict(row)
-        results.append({"kind": "thought", "title": item["title"], "snippet": _snippet(f"{item['tags']} {item['content']}", q), "url": f"/thoughts/{item['id']}/edit"})
+        results.append(
+            {
+                "kind": "thought",
+                "title": item["title"],
+                "snippet": _snippet(f"{item['tags']} {item['content']}", q),
+                "url": f"/thoughts/{item['id']}/edit",
+            }
+        )
     for row in resources:
         item = dict(row)
-        results.append({"kind": "resource", "title": item["title"], "snippet": _snippet(f"{item['tags']} {item['description']} {item['url']}", q), "url": f"/resources/{item['id']}/edit"})
+        results.append(
+            {
+                "kind": "resource",
+                "title": item["title"],
+                "snippet": _snippet(f"{item['tags']} {item['description']} {item['url']}", q),
+                "url": f"/resources/{item['id']}/edit",
+            }
+        )
     return results[:limit]
 
 

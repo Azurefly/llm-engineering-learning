@@ -36,7 +36,9 @@ def _force_deadline_into_the_past(attempt_id: int) -> None:
 def _attempt_status(attempt_id: int) -> tuple[str, int]:
     with db.connect() as conn:
         status = conn.execute("SELECT status FROM exam_attempts WHERE id=?", (attempt_id,)).fetchone()["status"]
-        auto = conn.execute("SELECT auto_submitted FROM exam_runtime WHERE attempt_id=?", (attempt_id,)).fetchone()["auto_submitted"]
+        auto = conn.execute("SELECT auto_submitted FROM exam_runtime WHERE attempt_id=?", (attempt_id,)).fetchone()[
+            "auto_submitted"
+        ]
     return status, auto
 
 
@@ -45,7 +47,9 @@ def test_exam_autosave_and_restore():
     attempt_id = int(started.headers["location"].rsplit("/", 1)[-1])
     try:
         with db.connect() as conn:
-            row = conn.execute("SELECT question_id FROM exam_attempt_questions WHERE attempt_id=? ORDER BY seq LIMIT 1", (attempt_id,)).fetchone()
+            row = conn.execute(
+                "SELECT question_id FROM exam_attempt_questions WHERE attempt_id=? ORDER BY seq LIMIT 1", (attempt_id,)
+            ).fetchone()
         assert row is not None
         qid = row["question_id"]
         saved = client.post(f"/exam-runtime/{attempt_id}/autosave", json={"answers": {qid: "true"}})
@@ -250,7 +254,11 @@ def test_mistake_practice_redirects_when_nothing_is_unresolved(monkeypatch):
     ],
 )
 def test_exam_duration_is_configurable_and_clamped(monkeypatch, mode, configured, expected_seconds):
-    variable = {"weekly": "LLM_EXAM_WEEKLY_MINUTES", "stage": "LLM_EXAM_STAGE_MINUTES", "mistakes": "LLM_EXAM_MISTAKE_MINUTES"}[mode]
+    variable = {
+        "weekly": "LLM_EXAM_WEEKLY_MINUTES",
+        "stage": "LLM_EXAM_STAGE_MINUTES",
+        "mistakes": "LLM_EXAM_MISTAKE_MINUTES",
+    }[mode]
     if configured is None:
         monkeypatch.delenv(variable, raising=False)
     else:

@@ -109,13 +109,29 @@ def _lang(request: Request) -> str:
 
 def _nav(request: Request, lang: str) -> dict[str, Any]:
     progress = db.all_progress()
-    lessons = [{"key": x.key, "week": x.week, "title": title_for(x, lang), "progress": progress.get(x.key, {"status":"not_started","percent":0,"score":None})} for x in LESSONS]
-    return {"request": request, "lang": lang, "t": lambda key: tr(lang,key), "lessons": lessons, "current_path": request.url.path}
+    lessons = [
+        {
+            "key": x.key,
+            "week": x.week,
+            "title": title_for(x, lang),
+            "progress": progress.get(x.key, {"status": "not_started", "percent": 0, "score": None}),
+        }
+        for x in LESSONS
+    ]
+    return {
+        "request": request,
+        "lang": lang,
+        "t": lambda key: tr(lang, key),
+        "lessons": lessons,
+        "current_path": request.url.path,
+    }
 
 
 def _attempts(lesson_key: str, limit: int = 10) -> list[dict[str, Any]]:
     with db.connect() as conn:
-        rows = conn.execute("SELECT * FROM code_attempts WHERE lesson_key=? ORDER BY id DESC LIMIT ?", (lesson_key, limit)).fetchall()
+        rows = conn.execute(
+            "SELECT * FROM code_attempts WHERE lesson_key=? ORDER BY id DESC LIMIT ?", (lesson_key, limit)
+        ).fetchall()
     return [dict(x) for x in rows]
 
 
@@ -125,9 +141,17 @@ def coding_labs(request: Request):
     items = []
     for lesson_key, challenge in CHALLENGES.items():
         history = _attempts(lesson_key, 100)
-        items.append({"challenge": challenge, "lesson": LESSON_MAP[lesson_key], "title": challenge.en if lang == "en" else challenge.zh,
-                      "attempt_count": len(history), "best": max((float(x["score_percent"]) for x in history), default=None)})
-    c = _nav(request, lang); c["coding_items"] = items
+        items.append(
+            {
+                "challenge": challenge,
+                "lesson": LESSON_MAP[lesson_key],
+                "title": challenge.en if lang == "en" else challenge.zh,
+                "attempt_count": len(history),
+                "best": max((float(x["score_percent"]) for x in history), default=None),
+            }
+        )
+    c = _nav(request, lang)
+    c["coding_items"] = items
     return templates.TemplateResponse(request=request, name="coding_labs.html", context=c)
 
 
@@ -138,9 +162,16 @@ def coding_lab(request: Request, lesson_key: str):
         raise HTTPException(404)
     lang = _lang(request)
     c = _nav(request, lang)
-    c.update({"challenge": challenge, "lesson": LESSON_MAP[lesson_key], "title": challenge.en if lang == "en" else challenge.zh,
-              "prompt": challenge.prompt_en if lang == "en" else challenge.prompt_zh,
-              "source": challenge.starter, "history": _attempts(lesson_key)})
+    c.update(
+        {
+            "challenge": challenge,
+            "lesson": LESSON_MAP[lesson_key],
+            "title": challenge.en if lang == "en" else challenge.zh,
+            "prompt": challenge.prompt_en if lang == "en" else challenge.prompt_zh,
+            "source": challenge.starter,
+            "history": _attempts(lesson_key),
+        }
+    )
     return templates.TemplateResponse(request=request, name="coding_lab.html", context=c)
 
 
@@ -159,8 +190,19 @@ def run_coding_lab(request: Request, lesson_key: str, source_code: str = Form(..
         cur = conn.execute(
             """INSERT INTO code_attempts(lesson_key,challenge_key,source_code,score_percent,passed,passed_tests,total_tests,stdout,stderr,reason,created_at)
                VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
-            (lesson_key, challenge.key, source_code, result.score_percent, 1 if passed else 0, result.passed_tests, result.total_tests,
-             result.stdout, result.stderr, result.reason, now_iso()),
+            (
+                lesson_key,
+                challenge.key,
+                source_code,
+                result.score_percent,
+                1 if passed else 0,
+                result.passed_tests,
+                result.total_tests,
+                result.stdout,
+                result.stderr,
+                result.reason,
+                now_iso(),
+            ),
         )
         attempt_id = int(cur.lastrowid)
     return RedirectResponse(f"/coding-labs/{lesson_key}/result/{attempt_id}", status_code=303)
@@ -172,10 +214,19 @@ def coding_result(request: Request, lesson_key: str, attempt_id: int):
     if not challenge:
         raise HTTPException(404)
     with db.connect() as conn:
-        row = conn.execute("SELECT * FROM code_attempts WHERE id=? AND lesson_key=?", (attempt_id, lesson_key)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM code_attempts WHERE id=? AND lesson_key=?", (attempt_id, lesson_key)
+        ).fetchone()
     if not row:
         raise HTTPException(404)
-    lang = _lang(request); c = _nav(request, lang)
-    c.update({"challenge": challenge, "lesson": LESSON_MAP[lesson_key], "title": challenge.en if lang == "en" else challenge.zh,
-              "result": dict(row)})
+    lang = _lang(request)
+    c = _nav(request, lang)
+    c.update(
+        {
+            "challenge": challenge,
+            "lesson": LESSON_MAP[lesson_key],
+            "title": challenge.en if lang == "en" else challenge.zh,
+            "result": dict(row),
+        }
+    )
     return templates.TemplateResponse(request=request, name="coding_result.html", context=c)
