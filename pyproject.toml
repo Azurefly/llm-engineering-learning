@@ -1,3 +1,11 @@
+[project]
+name = "llm-engineering-learning"
+# Keep in sync with app.__version__; tests/test_app.py fails if they drift.
+version = "1.0.0"
+description = "Local-first, multi-user LLM engineering learning app with system-graded exams, coding labs and sequential adaptive testing."
+readme = "README.md"
+requires-python = ">=3.11"
+
 [tool.ruff]
 # Pinned explicitly instead of relying on ruff's defaults: the toolchain must
 # behave the same locally and in CI even after a ruff upgrade.

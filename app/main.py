@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from . import __version__
 from .backup import export_all_json
 from .course import LESSON_MAP, LESSONS, load_lesson_markdown, title_for
 from .db import Database
@@ -301,4 +302,4 @@ def export_backup():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "version": __version__}
