@@ -54,7 +54,7 @@ def install() -> None:
     for module_name in ("app.exam_v2", "app.adaptive_v5"):
         module = sys.modules.get(module_name)
         if module is not None and hasattr(module, "grade_question"):
-            setattr(module, "grade_question", grade_question_strict)
+            module.grade_question = grade_question_strict
 
 
 install()

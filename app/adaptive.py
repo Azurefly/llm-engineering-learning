@@ -10,7 +10,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from .code_exam import CHALLENGES
-from .course import LESSONS, LESSON_MAP, title_for
+from .course import LESSON_MAP, LESSONS
 from .exam_system import Question
 from .exam_v2 import (
     QUESTION_INDEX,
@@ -38,7 +38,7 @@ class Domain:
 
 
 DOMAINS: tuple[Domain, ...] = (
-    Domain("foundation", tuple(f"week{i:02d}" for i in range(0, 5)), "基础原理", "Foundations"),
+    Domain("foundation", tuple(f"week{i:02d}" for i in range(5)), "基础原理", "Foundations"),
     Domain("llm_app", tuple(f"week{i:02d}" for i in range(5, 8)), "LLM 应用", "LLM Apps"),
     Domain("rag", tuple(f"week{i:02d}" for i in range(8, 11)), "RAG 工程", "RAG"),
     Domain("agent", tuple(f"week{i:02d}" for i in range(11, 14)), "Agent 工程", "Agents"),

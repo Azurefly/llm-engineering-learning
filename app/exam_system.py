@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .course import LESSONS, LESSON_MAP, title_for
+from .course import LESSON_MAP, LESSONS, title_for
 from .db import Database, now_iso
 from .i18n import normalize_lang, tr
 

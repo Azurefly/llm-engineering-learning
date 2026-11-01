@@ -2,11 +2,13 @@ from __future__ import annotations
 
 # Stable application composition. Versioned main_v*.py files remain only as
 # backwards-compatible entrypoints; the supported runtime no longer chains them.
-from . import adaptive_exposure
-from . import bank_extension  # noqa: F401 - installs the expanded question bank
-from . import code_challenges_v5  # noqa: F401 - fills coding labs for Week 2-18
-from . import grading_v5
-from . import question_snapshot
+from . import (
+    adaptive_exposure,
+    bank_extension,  # noqa: F401 - installs the expanded question bank
+    code_challenges_v5,  # noqa: F401 - fills coding labs for Week 2-18
+    grading_v5,
+    question_snapshot,
+)
 from . import adaptive_v5 as adaptive_v5_module
 from . import admin as admin_module
 from . import auth as auth_module
@@ -19,13 +21,15 @@ from .adaptive_v5 import router as adaptive_v5_router
 from .admin import router as admin_router
 from .admin_report_routes import router as admin_report_router
 from .admin_settings import registration_enabled as runtime_registration_enabled
-from .auth import install_auth, router as auth_router
+from .auth import install_auth
+from .auth import router as auth_router
 from .auto_backup import maybe_create_auto_backup
 from .code_exam import router as code_exam_router
 from .data_management import router as data_management_router
 from .db import Database
 from .diagnostics import router as diagnostics_router
-from .exam_v2 import db, router as exam_v2_router
+from .exam_v2 import db
+from .exam_v2 import router as exam_v2_router
 from .exam_v3 import router as exam_v3_router
 from .hardening import install_security_headers
 from .main import app

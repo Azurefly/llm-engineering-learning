@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from .auth import account_store, user_learning_path
@@ -17,8 +17,8 @@ def _parse_time(value: str | None) -> datetime | None:
     except ValueError:
         return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
 
 
 def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
@@ -153,7 +153,7 @@ def _progress_band(value: float) -> str:
 
 def collect_admin_report() -> dict[str, Any]:
     users = [read_user_progress(user) for user in account_store().list_users()]
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     enabled_users = [u for u in users if int(u.get("is_active") or 0) == 1]
     started_users = [u for u in enabled_users if u["started_lessons"] > 0]
     exam_attempts = sum(int(u["exam_attempts"]) for u in users)
@@ -161,7 +161,7 @@ def collect_admin_report() -> dict[str, Any]:
 
     weighted_exam_pass = sum((u["exam_pass_rate"] or 0) * u["exam_attempts"] for u in users)
     weighted_code_pass = sum((u["code_pass_rate"] or 0) * u["code_attempts"] for u in users)
-    active_7d = sum(1 for u in enabled_users if (_parse_time(u.get("last_activity")) or datetime.min.replace(tzinfo=timezone.utc)) >= now - timedelta(days=7))
+    active_7d = sum(1 for u in enabled_users if (_parse_time(u.get("last_activity")) or datetime.min.replace(tzinfo=UTC)) >= now - timedelta(days=7))
 
     week_stats: list[dict[str, Any]] = []
     for lesson in LESSONS:

@@ -1,5 +1,5 @@
-from app.current import app  # noqa: F401
 from app.code_exam import CHALLENGES
+from app.current import app  # noqa: F401
 
 
 def test_every_engineering_week_has_a_coding_lab():

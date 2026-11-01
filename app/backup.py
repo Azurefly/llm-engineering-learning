@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -49,7 +49,7 @@ def export_all_json(db: Database) -> str:
     payload["_meta"] = {
         "format": "llm-engineering-learning-backup",
         "version": BACKUP_FORMAT_VERSION,
-        "exported_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "exported_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
