@@ -41,6 +41,44 @@ jobs:
           LLM_CODE_RUNNER: disabled
         run: pytest -q
 
+  coverage:
+    # The coverage floor runs once, on a single canonical interpreter: platform
+    # specific branches would otherwise make the same threshold mean different
+    # things on each matrix leg.
+    name: coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.lock.txt
+      - name: Install verified dependencies
+        run: pip install -r requirements-dev.lock.txt
+      - name: Run tests under the coverage floor
+        env:
+          PYTHONPATH: .
+          LLM_CODE_RUNNER: disabled
+        run: pytest -q --cov --cov-report=term-missing
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.lock.txt
+      - name: Install verified dependencies
+        run: pip install -r requirements-dev.lock.txt
+      - name: Lint
+        run: ruff check .
+
   security-audit:
     name: dependency audit
     runs-on: ubuntu-latest
@@ -177,7 +215,7 @@ jobs:
 
   ci-gate:
     name: aggregate CI gate
-    needs: [test, security-audit, sandbox-smoke, app-docker-smoke]
+    needs: [test, coverage, lint, security-audit, sandbox-smoke, app-docker-smoke]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -185,15 +223,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TEST_RESULT: ${{ needs.test.result }}
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
+          LINT_RESULT: ${{ needs.lint.result }}
           AUDIT_RESULT: ${{ needs.security-audit.result }}
           SANDBOX_RESULT: ${{ needs.sandbox-smoke.result }}
           DOCKER_RESULT: ${{ needs.app-docker-smoke.result }}
         run: |
           state=failure
           description="One or more CI gates failed"
-          if [ "$TEST_RESULT" = "success" ] && [ "$AUDIT_RESULT" = "success" ] && [ "$SANDBOX_RESULT" = "success" ] && [ "$DOCKER_RESULT" = "success" ]; then
+          if [ "$TEST_RESULT" = "success" ] && [ "$COVERAGE_RESULT" = "success" ] && [ "$LINT_RESULT" = "success" ] && [ "$AUDIT_RESULT" = "success" ] && [ "$SANDBOX_RESULT" = "success" ] && [ "$DOCKER_RESULT" = "success" ]; then
             state=success
-            description="Cross-platform tests, dependency audit, sandbox, Docker isolation, admin reporting and registration control passed"
+            description="Cross-platform tests, coverage floor, lint, dependency audit, sandbox, Docker isolation, admin reporting and registration control passed"
           fi
           if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             curl -fsS -X POST \
