@@ -7,7 +7,7 @@
 ![coverage](https://img.shields.io/badge/coverage-95%25-brightgreen)
 ![license](https://img.shields.io/badge/storage-SQLite-lightgrey)
 
-**目录**：[快速开始](#快速开始) · [项目功能](#项目功能) · [环境变量](#环境变量) · [主要页面](#主要页面) · [数据与备份](#数据与备份) · [质量门禁](#质量门禁) · [文档](#文档索引) · [课程路线](#课程路线) · [English](#english)
+**目录**：[快速开始](#快速开始) · [常见问题排查](#常见问题排查) · [项目功能](#项目功能) · [环境变量](#环境变量) · [主要页面](#主要页面) · [数据与备份](#数据与备份) · [质量门禁](#质量门禁) · [文档](#文档索引) · [课程路线](#课程路线) · [English](#english)
 
 ---
 
@@ -17,7 +17,7 @@
 
 | 运行方式 | 需要 |
 |---|---|
-| Python 直接运行 | **Python 3.11 或更高**（CI 覆盖 3.11 / 3.12） |
+| Python 直接运行 | **Python 3.11 或更高**（CI 验证 3.11 / 3.12；3.14 实测可运行但未纳入 CI） |
 | Docker Compose | **Docker Engine / Docker Desktop** 与 **Compose v2** |
 | 代码实训自动评分（可选） | **Docker CLI**（学习者代码在沙箱容器内执行） |
 
@@ -81,6 +81,70 @@ LLM_CODE_RUNNER=docker python run.py
 ```
 
 沙箱以 `--network none`、`--read-only`、`--cap-drop ALL`、`--pids-limit`、内存/CPU 限制与只读工作区运行，仅适合**可信本地工作站**，不是公共多租户判题服务。详见 [docs/V3.md](docs/V3.md)。
+
+---
+
+## 常见问题排查
+
+### 启动报 `ModuleNotFoundError: No module named 'uvicorn'`（或其它包）
+
+说明依赖没装上，`python run.py` 只是暴露了结果。**往回看 `pip install` 的输出**，几乎都有一条 `ERROR:`。
+
+新版入口会直接给出可操作提示而不是裸 traceback：
+
+```text
+无法启动：缺少运行时依赖 / missing runtime dependencies: uvicorn[standard], fastapi
+
+请先安装已验证的依赖组合：
+    pip install -r requirements.lock.txt
+```
+
+### `pip install` 报 `Could not find a version that satisfies the requirement fastapi==0.162.0`
+
+**这是最常见的失败原因**：本机 pip 配置了镜像源（例如 `~/.pip/pip.conf` 指向清华镜像），而镜像尚未同步这些固定版本。
+
+```bash
+pip config list          # 看当前生效的 index-url
+```
+
+两种解法任选其一：
+
+```bash
+# 1) 直接用官方源安装
+pip install -r requirements.lock.txt --index-url https://pypi.org/simple
+
+# 2) 换用已同步的镜像
+pip install -r requirements.lock.txt --index-url https://<mirror>/simple
+```
+
+> 注意 `pip config list` 里的 `global.index-url` 是**全局**配置，会影响所有项目；临时覆盖请用上面的 `--index-url`。
+
+### Docker：`Cannot connect to the Docker daemon`
+
+Docker 守护进程没运行。启动 Docker Desktop / `sudo systemctl start docker` 后重试。
+
+### Docker 构建卡在或失败于 `pip install`
+
+容器内默认直连 PyPI，网络受限时需要在**构建期**指定镜像源：
+
+```bash
+PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple docker compose up -d --build
+```
+
+镜像构建的最后一步会做依赖自检（`import bleach, fastapi, jinja2, mistune, python_multipart, uvicorn`），依赖不完整时**构建即失败**，不会出现"容器起来了但一用就报错"。
+
+### 端口 8765 被占用
+
+```bash
+PORT=8766 python run.py          # 换端口
+lsof -i :8765                    # 或找出占用进程
+```
+
+Docker 方式请改 `docker-compose.yml` 的 `ports` 映射，不要只改容器内 `PORT`。
+
+### `docker compose down -v` 会删数据
+
+`down` 保留 named volume；`down -v` **删除整个 volume，包括所有账号与学习记录**。删之前先到 `/data-management` 导出 JSON 备份。
 
 ---
 
@@ -326,6 +390,26 @@ Development and verification:
 pip install -r requirements-dev.lock.txt
 ruff check . && ruff format --check . && pytest -q --cov   # coverage floor 95%
 ```
+
+## English Troubleshooting
+
+**`ModuleNotFoundError: No module named 'uvicorn'`** — the dependencies never installed. Scroll back through the `pip install` output for the `ERROR:` line; the entrypoint prints the missing distributions and the exact install command instead of a bare traceback.
+
+**`Could not find a version that satisfies the requirement fastapi==0.162.0`** — your pip index is a mirror that has not synced these pinned versions (check `pip config list`). Install from PyPI directly:
+
+```bash
+pip install -r requirements.lock.txt --index-url https://pypi.org/simple
+```
+
+**Docker: `Cannot connect to the Docker daemon`** — start Docker Desktop / the docker service first.
+
+**Docker build fails or stalls at `pip install`** — the container reaches PyPI directly by default. Point the build at a reachable mirror:
+
+```bash
+PIP_INDEX_URL=https://<mirror>/simple docker compose up -d --build
+```
+
+The build ends with an import self-check, so an incomplete dependency set fails the **build** instead of producing a container that breaks on first use.
 
 ## English Features
 
