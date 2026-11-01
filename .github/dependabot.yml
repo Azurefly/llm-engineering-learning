@@ -1,4 +1,9 @@
 version: 2
+
+# Dependency updates are grouped on purpose. The runtime pins in
+# requirements.lock.txt are adjacent lines, so one PR per dependency made the
+# PRs conflict with each other and forced a serial rebase before every merge.
+# One grouped PR per ecosystem keeps the lock file consistent in a single step.
 updates:
   - package-ecosystem: pip
     directory: /
@@ -7,6 +12,18 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - dependencies
+    # Let a release age before adopting it, so a broken or compromised release
+    # is usually yanked before it reaches this repository.
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    groups:
+      python-runtime:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -14,3 +31,12 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - dependencies
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
